@@ -1,0 +1,62 @@
+<annotation>
+	<folder>20190711_104143 (7-22-2019 12-50-07 PM)</folder>
+	<filename>20190711_104143 034.jpg</filename>
+	<path>C:\Users\Gene\Desktop\Thesis\Design Project 2\jPEG\20190711_104143 (7-22-2019 12-50-07 PM)\20190711_104143 034.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>1920</width>
+		<height>1080</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>plate number</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>584</xmin>
+			<ymin>484</ymin>
+			<xmax>609</xmax>
+			<ymax>498</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>plate number</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>1452</xmin>
+			<ymin>881</ymin>
+			<xmax>1567</xmax>
+			<ymax>930</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>car</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>1021</xmin>
+			<ymin>645</ymin>
+			<xmax>1666</xmax>
+			<ymax>1074</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>car</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>557</xmin>
+			<ymin>453</ymin>
+			<xmax>629</xmax>
+			<ymax>524</ymax>
+		</bndbox>
+	</object>
+</annotation>
