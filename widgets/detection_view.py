@@ -27,7 +27,7 @@ with tf.Session() as sess:
         @QtCore.pyqtSlot()
         def start_webcam(self):
             if self.capture is None:
-                self.capture = cv.VideoCapture("/home/lr/Desktop/tvds-integrated-final/vid.mp4", 0)
+                self.capture = cv.VideoCapture("/home/lr/Videos/vid.mp4", 0)
                 self.capture.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
                 self.capture.set(cv.CAP_PROP_FRAME_WIDTH, 640)
             self.timer.start()
