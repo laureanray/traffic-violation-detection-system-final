@@ -1,3 +1,4 @@
+
 class Details:
     width = 720
     height = 540
@@ -13,3 +14,4 @@ class State:
     model_path = ""
     pbtext_path = ""
     source = ""
+    isStarted = False

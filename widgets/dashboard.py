@@ -26,7 +26,7 @@ class Dashboard(QWidget):
         label2.setText('Pbtext: ')
         label2.setFixedWidth(50)
 
-        button2 = QPushButton('Load .pbtext')
+        button2 = QPushButton('Load .pbtxt file')
         button2.setFixedWidth(150)
         button2.clicked.connect(self.openPbTextDialog)
 
@@ -39,28 +39,59 @@ class Dashboard(QWidget):
         self.selector.activated[str].connect(self.onComboBoxChange)
 
         # Load footage from file frame and layout
+        sizeVbox = QVBoxLayout()
+        widthHbox = QHBoxLayout()
+        heightHbox = QHBoxLayout()
+
         widthInput = QLineEdit(self)
         heightInput = QLineEdit(self)
         self.footageNameLabel = QLabel()
         widthLabel = QLabel('Width')
         heightLabel = QLabel('Height')
-        inputLayout = QHBoxLayout()
-        inputLayout.addWidget(widthLabel)
-        inputLayout.addWidget(widthLabel)
-        inputLayout.addWidget(widthInput)
-        inputLayout.addWidget(heightLabel)
-        inputLayout.addWidget(heightInput)
+
+        widthLabel.setFixedWidth(50)
+        heightLabel.setFixedWidth(50)
+        widthInput.setFixedWidth(75)
+        heightInput.setFixedWidth(75)
+
+        widthHbox.addWidget(widthLabel)
+        widthHbox.addWidget(widthInput)
+        heightHbox.addWidget(heightLabel)
+        heightHbox.addWidget(heightInput)
+
+
+
+
+        inputLayout = QVBoxLayout()
+        inputLayout.addWidget(self.footageNameLabel)
+        inputLayout.addLayout(widthHbox)
+        inputLayout.addLayout(heightHbox)
+        inputLayout.setAlignment(Qt.AlignLeft)
+
+        inputLayout.setEnabled(False)
 
         self.loadFootageFrame = QFrame()
-        loadFootageLayout = QHBoxLayout()
+        loadFootageLayout = QVBoxLayout()
         loadFootageButton = QPushButton("Load Footage")
+        loadFootageButton.setFixedWidth(100)
+
+
+
+
         # Add click listener
         loadFootageButton.clicked.connect(self.openFootageDialog)
         loadFootageLayout.addWidget(loadFootageButton)
+        inputLayout.setAlignment(Qt.AlignLeft)
         loadFootageLayout.addLayout(inputLayout)
+        loadFootageLayout.setAlignment(Qt.AlignLeft)
+
+
         self.loadFootageFrame.setLayout(loadFootageLayout)
 
         loadFootageLayout.setContentsMargins(0,0,0,0)
+
+
+
 
         # Load from camera
         self.loadCameraFrame = QFrame()
