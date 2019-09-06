@@ -207,7 +207,7 @@
     <string>30 km/h</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_4">
+  <widget class="QPushButton" name="stopButton">
    <property name="geometry">
     <rect>
      <x>820</x>

@@ -20,23 +20,27 @@ with tf.Session() as sess:
             uic.loadUi('./user_interface/DetectionView.ui', self)
             self.imageLabel.setScaledContents(True)
             self.trafficLight.setScaledContents(True)
-            self.capture = None
+            self.traffic_light = None
             self.setWindowTitle('Detection Window')
             self.timer = QtCore.QTimer(self, interval=100)
             self.timer.timeout.connect(self.update_frame)
             self.start_webcam()
+            self.stopButton.clicked.connect(self.stop)
+
+        def stop(self):
+            self.traffic_light.release()
 
         @QtCore.pyqtSlot()
         def start_webcam(self):
-            if self.capture is None:
-                self.capture = cv.VideoCapture("/home/lr/Desktop/traffic_light3.avi", 0)
-                self.capture.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
-                self.capture.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+            if self.traffic_light is None:
+                self.traffic_light = cv.VideoCapture("/home/lr/Desktop/traffic_light3.avi", 0)
+                self.traffic_light.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+                self.traffic_light.set(cv.CAP_PROP_FRAME_WIDTH, 640)
             self.timer.start()
 
         @QtCore.pyqtSlot()
         def update_frame(self):
-            ret, image = self.capture.read()
+            ret, image = self.traffic_light.read()
             resized = cv.resize(image, (1280, 720));
             x = 301*2;
             y = 182*2;
@@ -97,48 +101,18 @@ with tf.Session() as sess:
             return np.unravel_index(np.bincount(a1D).argmax(), col_range)
 
         def getTrafficLightStatus(self, frame):
-            # CONVERT BGR TO HSV
-            # 20 x 36
-            # Red ROI
-            red_x = 0
-            red_y = 0
-            red_w = 20
-            red_h = 12
-            red_pixel_x = red_w / 2
-            red_pixel_y = red_h / 2
-            # Amber ROI
-            amber_x = 0
-            amber_y = 12
-            amber_w = 20
-            amber_h = 12
-            # Green ROI
-            green_x = 0
-            green_y = 24
-            green_w = 20
-            green_h = 12
-
             gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-
             red = gray[6][6]
             red_full = frame[6][6]
-
             amber = gray[16][6]
-
             green = gray[25][6]
-
-
             state = ""
-
             if green > 80:
                 state = "GREEN"
             elif amber > 80:
                 state = "AMBER"
             elif red > 80 or red_full[2] > 170:
                 state = "RED"
-
-
-
-
             return state
 
 
