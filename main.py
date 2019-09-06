@@ -16,6 +16,7 @@ class Main(QMainWindow):
         self.configs = Config()
         self.startButton.clicked.connect(self.onStartButton)
         self.actionConfigs.triggered.connect(self.onTriggeredConfig)
+        self.detection.show()
 
     def onStartButton(self):
         print('Start')
@@ -37,5 +38,5 @@ if __name__=='__main__':
     app = QtWidgets.QApplication(sys.argv)
     window = Main()
     window.setWindowTitle('Main')
-    window.show()
+    # window.show()
     sys.exit(app.exec_())
