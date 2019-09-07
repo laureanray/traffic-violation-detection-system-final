@@ -1,7 +1,4 @@
 # Imports
-import os
-import cv2 as cv
-import numpy as np
 from widgets import Detection, Config
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtWidgets import QMainWindow
