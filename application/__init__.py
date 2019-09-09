@@ -15,3 +15,10 @@ class State:
     pbtext_path = ""
     source = ""
     isStarted = False
+    config_path = "config/application.config"
+    config = None
+    config_dict = {
+        'CAMERA_1': '/',
+        'CAMERA_2': '/'
+    }
+

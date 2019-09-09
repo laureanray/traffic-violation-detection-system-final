@@ -10,8 +10,9 @@ from PyQt5.QtWidgets import QMainWindow
 import numpy as np
 
 tf.logging.set_verbosity(tf.logging.ERROR)
-import application as app
+from application import State, Details
 from widgets.config import Config
+import config_manager as config
 
 # import tarfile
 # import zipfile
@@ -118,6 +119,9 @@ with tf.Session() as sess:
             self.timer.timeout.connect(self.update_traffic_light_frame)
             self.timer.timeout.connect(self.update_traffic_frame)
             self.camera_selected = True
+
+            # Load config before starting camera
+            config.load_config()
             # Start camera
             self.start_camera()
             self.stopButton.clicked.connect(self.stop)
@@ -125,6 +129,7 @@ with tf.Session() as sess:
             self.configButton.clicked.connect(self.showConfig)
             self.camera1_frame = None
             self.camera2_frame = None
+
 
         def stop(self):
             self.traffic_light.release()
@@ -135,12 +140,12 @@ with tf.Session() as sess:
         def start_camera(self):
 
             if self.traffic_light is None:
-                self.traffic_light = cv.VideoCapture("/home/lr/Desktop/traffic_light2.avi", 0)
+                self.traffic_light = cv.VideoCapture(State.config_dict['CAMERA_1'], 0)
                 self.traffic_light.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
                 self.traffic_light.set(cv.CAP_PROP_FRAME_WIDTH, 640)
 
             if self.traffic_camera is None:
-                self.traffic_camera = cv.VideoCapture("/home/lr/Desktop/car_1.avi", 0)
+                self.traffic_camera = cv.VideoCapture(State.config_dict['CAMERA_2'], 0)
                 self.traffic_camera.set(cv.CAP_PROP_FRAME_WIDTH, 640)
                 self.traffic_camera.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
 
@@ -279,7 +284,7 @@ if __name__ == '__main__':
 
     application = QtWidgets.QApplication(sys.argv)
     window = Main()
-    window.setWindowTitle(app.Details.name)
+    window.setWindowTitle(Details.name)
     window.show()
     # window.showFullScreen()
     # window.show()

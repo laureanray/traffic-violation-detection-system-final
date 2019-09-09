@@ -8,7 +8,7 @@ class Config(QWidget):
         # Load GU
         uic.loadUi('./user_interface/config.ui', self)
 
-        # # Connect click event
+        # # Connect click event`1
         # self.loadModelButton.clicked.connect(self.onClickedLoadModelButton)
         # self.closeButton.clicked.connect(self.close)
         self.closeButton.clicked.connect(self.close)
