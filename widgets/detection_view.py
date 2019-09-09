@@ -7,6 +7,8 @@ import tensorflow as tf
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtWidgets import QMainWindow
 import numpy as np
+tf.logging.set_verbosity(tf.logging.ERROR)
+
 import tarfile
 import zipfile
 import matplotlib
@@ -18,7 +20,6 @@ from io import StringIO
 from matplotlib import pyplot as plt
 from PIL import Image
 
-sys.path.append("..")
 from object_detection.utils import ops as utils_ops
 
 # MODEL_NAME = 'cars_inference_graph'
@@ -59,7 +60,7 @@ with tf.Session() as sess:
             self.traffic_light = None
             self.traffic_camera = None
             self.setWindowTitle('Detection Window')
-            self.timer = QtCore.QTimer(self, interval=1)
+            self.timer = QtCore.QTimer(self, interval=100)
             self.timer.timeout.connect(self.update_traffic_light_frame)
             self.timer.timeout.connect(self.update_traffic_frame)
             self.camera_selected = True
