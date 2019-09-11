@@ -26,7 +26,7 @@
     <string>Camera 1 [Traffic Light]</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit">
+  <widget class="QLineEdit" name="camera1URL">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -54,7 +54,7 @@
     <string>Camera 1 URL</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="lineEdit_2">
+  <widget class="QLineEdit" name="camera2URL">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -154,7 +154,7 @@ background-color: green;</string>
     <string>Close</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_5">
+  <widget class="QPushButton" name="startWebServerButton">
    <property name="geometry">
     <rect>
      <x>10</x>
@@ -186,7 +186,7 @@ background-color: green;</string>
     <string>Start Web Server</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_7">
+  <widget class="QPushButton" name="footageSaveDirectoryButton">
    <property name="geometry">
     <rect>
      <x>590</x>
@@ -294,7 +294,7 @@ background-color: green;</string>
     <string>Frozen Inference Graph</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_8">
+  <widget class="QPushButton" name="frozenInferenceGraphButton">
    <property name="geometry">
     <rect>
      <x>590</x>
@@ -348,7 +348,7 @@ background-color: green;</string>
     <string>Label Map</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_9">
+  <widget class="QPushButton" name="labelMapButton">
    <property name="geometry">
     <rect>
      <x>590</x>
