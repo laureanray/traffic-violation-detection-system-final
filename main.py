@@ -7,6 +7,7 @@ import tensorflow as tf
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QMainWindow
+from object_tracker.pyimagesearch.centroidtracker import CentroidTracker
 import numpy as np
 
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -14,7 +15,7 @@ from application import State, Details
 from widgets.config import Config
 import config_manager as config
 
-# Read the graph
+# Initialzie the object tracker
 
 
 # Read the graph.
@@ -27,6 +28,9 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
     sess = tf.Session()
     sess.graph.as_default()
     tf.import_graph_def(graph_def, name='')
+
+    ct = CentroidTracker()
+    (H, W) = (None, None)
 
 
     class Main(QMainWindow):
@@ -44,10 +48,14 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.traffic_light = None
             self.traffic_camera = None
             self.setWindowTitle('Detection Window')
-            self.timer = QtCore.QTimer(self, intervagil=1)
+            self.timer = QtCore.QTimer(self, interval=50)
             self.timer.timeout.connect(self.update_traffic_light_frame)
             self.timer.timeout.connect(self.update_traffic_frame)
             self.camera_selected = True
+            self.num_cars_detected = 0
+            self.carsDetected.setText(str(self.num_cars_detected))
+            self.H = None
+            self.W = None
 
             # Load config before starting camera
             config.load_config()
@@ -62,6 +70,8 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
         def stop(self):
             self.traffic_light.release()
             self.traffic_camera.release()
+            # Close the tf session
+            sess.close()
             sys.exit()
 
         @QtCore.pyqtSlot()
@@ -69,13 +79,13 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
 
             if self.traffic_light is None:
                 self.traffic_light = cv.VideoCapture(State.config_dict['CAMERA_1'], 0)
-                self.traffic_light.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
-                self.traffic_light.set(cv.CAP_PROP_FRAME_WIDTH, 640)
+                self.traffic_light.set(cv.CAP_PROP_FRAME_HEIGHT, 1920)
+                self.traffic_light.set(cv.CAP_PROP_FRAME_WIDTH, 1080)
 
             if self.traffic_camera is None:
                 self.traffic_camera = cv.VideoCapture(State.config_dict['CAMERA_2'], 0)
-                self.traffic_camera.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-                self.traffic_camera.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+                self.traffic_camera.set(cv.CAP_PROP_FRAME_WIDTH, 1920)
+                self.traffic_camera.set(cv.CAP_PROP_FRAME_HEIGHT, 1080)
 
             self.timer.start()
 
@@ -110,10 +120,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             flag, self.camera2_frame = self.traffic_camera.read()
             resized = cv.resize(self.camera2_frame, (1280, 720))
 
-            x = 301 * 2
-            y = 182 * 2
-            w = 7 * 2
-            h = 16 * 2
+            roi = None
 
             if self.camera_selected and sess:
 
@@ -122,6 +129,9 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                 cols = img.shape[1]
                 inp = cv.resize(img, (300, 300))
                 inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
+
+                if self.W is None or self.H is None:
+                    (self.H, self.W) = img.shape[:2]
 
                 # Run the model
                 out = sess.run([sess.graph.get_tensor_by_name('num_detections:0'),
@@ -133,17 +143,24 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                 # Visualize detected bounding boxes.
                 num_detections = int(out[0][0])
                 roi = []
+                rects = []
 
+
+
+                # Loop over the detections
                 for i in range(num_detections):
                     classId = int(out[3][0][i])
                     score = float(out[1][0][i])
 
                     bbox = [float(v) for v in out[2][0][i]]
-                    if score > 0.3:
+                    if score > 0.4:
                         x = bbox[1] * cols
                         y = bbox[0] * rows
                         right = bbox[3] * cols
                         bottom = bbox[2] * rows
+                        rect = np.array([x, y, right, bottom])
+                        rects.append(rect.astype("int"))
+                        print(rect)
                         print(classId)
                         if classId == 1:
                             print('Car')
@@ -152,15 +169,35 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                         # else:
                         #     print('Truck')
 
-                        # print(score * 100)
-                        cv.rectangle(img, (int(x), int(y)), (int(right),
-                                                             int(bottom)), (125, 255, 51), thickness=2)
+                        new_x = int(x * 1.5)
+                        new_y = int(y * 1.5)
+                        new_right = int(right * 1.5)
+                        new_bottom = int(bottom * 1.5)
 
-                        roi = img[int(y):int(y) + int(bottom), int(x):int(x) + int(right)]
-                        print(int(right))
+                        cv.rectangle(img, (int(x), int(y)), (int(right), int(bottom)),
+                                      (0, 255, 0), 2)
+
+                        roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
+
+
+                objects = ct.update(rects)
+
+
+                for(objectID, centroid) in objects.items():
+                    # object on the output frame
+                    text = "ID {}".format(objectID)
+                    cv.putText(img, text, (centroid[0] - 10, centroid[1] - 10),
+                                cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    cv.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
+
+                # if len(roi) > 0:
+                #     cv.imshow('roi', cv.resize(roi, (500, 250)))
+
                 displayImage(img, True, self.imageLabel)
             else:
                 displayImage(self.camera1_frame, True, self.imageLabel)
+
+
 
         @QtCore.pyqtSlot()
         def capture_image(self):

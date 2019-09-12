@@ -135,7 +135,7 @@ background-color: green;</string>
     <string>Cars Detected Today</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_6">
+  <widget class="QLabel" name="carsDetected">
    <property name="geometry">
     <rect>
      <x>890</x>
