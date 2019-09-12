@@ -48,7 +48,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.traffic_light = None
             self.traffic_camera = None
             self.setWindowTitle('Detection Window')
-            self.timer = QtCore.QTimer(self, interval=50)
+            self.timer = QtCore.QTimer(self, interval=200)
             self.timer.timeout.connect(self.update_traffic_light_frame)
             self.timer.timeout.connect(self.update_traffic_frame)
             self.camera_selected = True
@@ -66,6 +66,8 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.configButton.clicked.connect(self.showConfig)
             self.camera1_frame = None
             self.camera2_frame = None
+
+            self.contours = np.array([[362, 85], [680, 85], [1280, 368], [1280, 720], [470, 720]])
 
         def stop(self):
             self.traffic_light.release()
@@ -125,6 +127,9 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             if self.camera_selected and sess:
 
                 img = cv.resize(resized, (1280, 720))
+                # Add the roi to the iamge
+
+
                 rows = img.shape[0]
                 cols = img.shape[1]
                 inp = cv.resize(img, (300, 300))
@@ -145,27 +150,26 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                 roi = []
                 rects = []
 
-
-
                 # Loop over the detections
                 for i in range(num_detections):
                     classId = int(out[3][0][i])
                     score = float(out[1][0][i])
 
                     bbox = [float(v) for v in out[2][0][i]]
-                    if score > 0.4:
+                    if score > 0.5:
                         x = bbox[1] * cols
                         y = bbox[0] * rows
                         right = bbox[3] * cols
                         bottom = bbox[2] * rows
                         rect = np.array([x, y, right, bottom])
                         rects.append(rect.astype("int"))
-                        print(rect)
-                        print(classId)
-                        if classId == 1:
-                            print('Car')
-                        elif classId == 2:
-                            print('Truck')
+                        # print(rect)
+                        # print(classId)  # print(rect)
+                        # print(classId)
+                        # if classId == 1:
+                        # print('Car')
+                        # elif classId == 2:
+                        # print('Truck')
                         # else:
                         #     print('Truck')
 
@@ -175,29 +179,62 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                         new_bottom = int(bottom * 1.5)
 
                         cv.rectangle(img, (int(x), int(y)), (int(right), int(bottom)),
-                                      (0, 255, 0), 2)
+                                     (0, 255, 0), 2)
 
                         roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
 
-
                 objects = ct.update(rects)
+                objects_to_count = []
 
-
-                for(objectID, centroid) in objects.items():
+                for (objectID, centroid) in objects.items():
                     # object on the output frame
                     text = "ID {}".format(objectID)
                     cv.putText(img, text, (centroid[0] - 10, centroid[1] - 10),
-                                cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                               cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                     cv.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
+
+                    # check if the car is already counted if not append to array
+                    print(centroid[1] )
+                    if centroid[1] > 200:
+                        objects_to_count.append(
+                            [centroid[0] - 50, centroid[1] - 50, centroid[0] + 50, centroid[1] + 50])
+                        cv.rectangle(img, (centroid[0] - 50, centroid[1] - 50), (centroid[0] + 50, centroid[1] + 50),
+                                     (255, 255, 0), 1)
 
                 # if len(roi) > 0:
                 #     cv.imshow('roi', cv.resize(roi, (500, 250)))
 
-                displayImage(img, True, self.imageLabel)
+                # objects_to_count = objects
+
+                if len(objects_to_count) > 0:
+                    for i in range(len(objects_to_count)):
+                        (x_start, y_start, x_end, y_end) = objects_to_count[i]
+                        # y_ave = int(round((y_start + y_end) / 2))
+                        # print('y ave: ' + str(y_ave))
+                        # y_range =
+                        if 200 in range(y_start, y_end):
+                            self.num_cars_detected += 1
+                            print(objects_to_count)
+                            # remove f counted
+                            del objects_to_count[i]
+                            break
+
+                # print('num: ' + str(self.num_cars_detected))
+                #
+                img = cv.line(img, (372, 200), (861, 200), (255, 0, 0,), 2)
+
+                self.carsDetected.setText(str(self.num_cars_detected))
+                cv.waitKey(0)
+
+                # overlay = img.copy()
+                # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
+                # alpha = 0.4
+                # img = cv.addWeighted(overlay, alpha, img, 1 - alpha, 0)
+                cv.imshow('img', img)
+
+                # displayImage(img, True, self.imageLabel)
             else:
                 displayImage(self.camera1_frame, True, self.imageLabel)
-
-
 
         @QtCore.pyqtSlot()
         def capture_image(self):
