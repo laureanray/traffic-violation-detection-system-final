@@ -48,7 +48,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.traffic_light = None
             self.traffic_camera = None
             self.setWindowTitle('Detection Window')
-            self.timer = QtCore.QTimer(self, interval=200)
+            self.timer = QtCore.QTimer(self, interval=1)
             self.timer.timeout.connect(self.update_traffic_light_frame)
             self.timer.timeout.connect(self.update_traffic_frame)
             self.camera_selected = True
@@ -127,8 +127,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             if self.camera_selected and sess:
 
                 img = cv.resize(resized, (1280, 720))
-                # Add the roi to the iamge
-
+                # Add the roi to the image
 
                 rows = img.shape[0]
                 cols = img.shape[1]
@@ -194,8 +193,8 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                     cv.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
                     # check if the car is already counted if not append to array
-                    print(centroid[1] )
-                    if centroid[1] > 200:
+                    print(centroid[1])
+                    if centroid[1] >= 243:
                         objects_to_count.append(
                             [centroid[0] - 50, centroid[1] - 50, centroid[0] + 50, centroid[1] + 50])
                         cv.rectangle(img, (centroid[0] - 50, centroid[1] - 50), (centroid[0] + 50, centroid[1] + 50),
@@ -224,15 +223,41 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                 img = cv.line(img, (372, 200), (861, 200), (255, 0, 0,), 2)
 
                 self.carsDetected.setText(str(self.num_cars_detected))
-                cv.waitKey(0)
+                # cv.waitKey(0)
 
-                # overlay = img.copy()
+                # overlay = im/g.copy()
                 # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
                 # alpha = 0.4
                 # img = cv.addWeighted(overlay, alpha, img, 1 - alpha, 0)
-                cv.imshow('img', img)
+                # cv.imshow('img', img)
 
+                # 1
+                # bounding = cv.boundingRect(self.contours)
+                # x, y, w, h = bounding
+                # cropped = img[y:y+h, x:x+h].copy()
+                #
+                # # Make mask
+                # pts = self.contours - self.contours.min(axis=0)
+                #
+                # mask = np.zeros(cropped.shape[:2], np.uint8)
+                # cv.drawContours(mask, [pts], -1, (255, 255, 255), -1, cv.LINE_AA)
+                #
+                # # do bit op
+                # dst = cv.bitwise_and(cropped, cropped, mask=mask)
+                #
+                #
+                # # add white background
+                # bg = np.ones_like(cropped, np.uint8) * 255
+                # cv.bitwise_not(bg, bg, mask=mask)
+                #
+                # dst2 = bg + dst
+                #
+                # cv.imshow('dst2', dst)
+                #
+
+                cv.waitKey(0)
                 # displayImage(img, True, self.imageLabel)
+                cv.imshow('img', img)
             else:
                 displayImage(self.camera1_frame, True, self.imageLabel)
 
@@ -253,6 +278,9 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
         def showConfig(self):
             print('Show config')
             self.config.show()
+
+
+
 
 
 # Static Methods
