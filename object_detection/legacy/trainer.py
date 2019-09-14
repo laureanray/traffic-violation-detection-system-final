@@ -233,7 +233,7 @@ def train(create_tensor_dict_fn,
     num_clones: The number of clones to run per machine.
     worker_replicas: The number of work replicas to train with.
     clone_on_cpu: True if clones should be forced to run on CPU.
-    ps_tasks: Number of parameter server tasks.
+    ps_tasks: Number of parameter web tasks.
     worker_job_name: Name of the worker job.
     is_chief: Whether this replica is the chief replica.
     train_dir: Directory to write checkpoints and training summaries to.

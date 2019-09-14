@@ -65,8 +65,8 @@ flags.DEFINE_boolean('clone_on_cpu', False,
 flags.DEFINE_integer('worker_replicas', 1, 'Number of worker+trainer '
                      'replicas.')
 flags.DEFINE_integer('ps_tasks', 0,
-                     'Number of parameter server tasks. If None, does not use '
-                     'a parameter server.')
+                     'Number of parameter web tasks. If None, does not use '
+                     'a parameter web.')
 flags.DEFINE_string('train_dir', '',
                     'Directory to save the checkpoints and training summaries.')
 
