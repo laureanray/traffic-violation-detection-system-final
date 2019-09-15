@@ -2,7 +2,9 @@ from flask import Flask, render_template, send_from_directory, request
 import pymongo
 import json 
 from flask import jsonify
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, send, emit
+from bson import Binary, Code
+from bson.json_util import dumps
 
 client = pymongo.MongoClient("mongodb://localhost:27017")
 db = client["tvds-dev"]
@@ -25,6 +27,15 @@ def index():
 #         print(data['test'])
 #     return 'JSON ok'
 
+# a = global_collection.find_one()
+
+# print(a)
+@app.route('/get_global', methods=['GET'])
+def get_global():
+    a = global_collection.find_one()
+    del a['_id']
+    print(a)
+    return jsonify(a)
 
 @app.route('/update_car_count', methods=['POST'])
 def update_num_car():
@@ -80,17 +91,20 @@ def initialize_databse():
     print('Database Initialized')
 
 
-@socketio.on('routine')
+@socketio.on('update')
 def handle_message(message):
-    print('received message: ' + message['foo'])
+    emit('update', {'message': message}, broadcast=True)    
+    # print('received message: ' + message['foo'])
     
-@socketio.on('connect')
-def handle_connect():
-    print('connected')
+    
+# @socketio.on('connected')
+# def handle_connect():
+#     print('connectedasdasd')
+#     emit('message', {'data': 'test'}, broadcast=True)    
     
 # This ensures that database contains a single document for global state   
 initialize_databse()
- 
+
 
 if __name__ == '__main__':
     socketio.run(app)
