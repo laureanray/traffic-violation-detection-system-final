@@ -61,6 +61,9 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.H = None
             self.W = None
             self.clock_timer.start()
+            self.frame = 0
+            self.objects_to_count = []
+            self.time_tracker = []
 
             # Load config before starting camera
             config.load_config()
@@ -131,13 +134,26 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
 
         @QtCore.pyqtSlot()
         def update_traffic_frame(self):
+            # print('frame: ' + str(self.frame))
+            self.frame += 1
+            
+            # print('###')
+            # print(len(ct.disappeared))
+            # print('###')
+            
+            
             flag, self.camera2_frame = self.traffic_camera.read()
             resized = cv.resize(self.camera2_frame, (1280, 720))
 
+            if self.frame < 130:
+                return
+            else:
+                self.timer.setInterval(250)
+            
             roi = None
 
             if self.camera_selected and sess:
-
+                
                 img = cv.resize(resized, (1280, 720))
                 # Add the roi to the image
 
@@ -195,7 +211,6 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                         roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
 
                 objects = ct.update(rects)
-                objects_to_count = []
 
                 for (objectID, centroid) in objects.items():
                     # object on the output frame
@@ -205,34 +220,135 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                     cv.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
                     # check if the car is already counted if not append to array
-                    print(centroid[1])
-                    if centroid[1] >= 243:
-                        objects_to_count.append(
-                            [centroid[0] - 50, centroid[1] - 50, centroid[0] + 50, centroid[1] + 50])
+                    # print(centroid[1])
+                    if centroid[1] >= 100:
+                        if len(self.objects_to_count) > 0:
+                            for x in range(len(self.objects_to_count)):
+                                # print('[x]: ' + str(x))
+                                # print(self.objects_to_count[x]['id'])
+                                # if objectID != self.objects_to_count[x]['id']:
+                                if not any(d['id'] == objectID for d in self.objects_to_count):
+                                    # print(str(objectID) + ' not equal to ' + str(self.objects_to_count[x]['id']))
+                                    dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
+                                    
+                                    # Check if the objectid that the system is trying to add already in the self.objects_to_track list
+                                    check = next((index for (index, d) in enumerate(self.objects_to_count) if d["id"] == objectID), None)
+                                    
+                                    # Check if the id has expired before adding to array
+                                    index = next((index for (index, d) in enumerate(self.time_tracker) if d["id"] == objectID), None)
+
+                                    if index is not None and check is not None:
+                                        current_time = datetime.datetime.now()
+                                        
+                                        if current_time >= self.time_tracker[index]['time_exp']:
+                                            # print(current_time.time() + ' vs ' + self.time_tracker[index]['time_exp'].time(), end=' ')
+                                            self.objects_to_count.append(dict_)
+                                            self.time_tracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                            # delete na yung tracker here?
+                                            self.time_tracker.pop(index)                                            
+                                        # else:
+                                            # print('DI PWEDE')
+                                    else:
+                                        # print("ELSA???")
+                                        # print(self.objects_to_count)
+                                        # print(index, check, end=' ')
+                                        # Dont check the time just add new one
+                                        self.objects_to_count.append(dict_)
+                                        self.time_tracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                            
+                                else:
+                                    # print('ELSE')
+                                    index = next((index for (index, d) in enumerate(self.objects_to_count) if d["id"] == objectID), None)
+                                    #print(index)
+                                    if index is not None:
+                                        self.objects_to_count[index]['coords'] = centroid      
+                                        print('UPDATE CENTROID')                  
+                                        
+                        else:
+                            dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
+                            self.objects_to_count.append(dict_)    
+                            self.time_tracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+      
                         cv.rectangle(img, (centroid[0] - 50, centroid[1] - 50), (centroid[0] + 50, centroid[1] + 50),
                                      (255, 255, 0), 1)
 
                 # if len(roi) > 0:
                 #     cv.imshow('roi', cv.resize(roi, (500, 250)))
 
-                # objects_to_count = objects
+                # print(len(self.objects_to_count))
+                # print(len(self.time_tracker))          
+                
+                # for x in range(len(self.time_tracker)):
+                #     print(self.time_tracker[x]['time_exp'].time(), end=' ')      
+                    
+                
+                if len(self.objects_to_count) > 0:
+                    for i in range(len(self.objects_to_count)):
+                        if self.objects_to_count[i]['is_counted'] == False:
+                            (x, y) = self.objects_to_count[i]['coords']
+                            # print('y['+str(i)+']: ' + str(y))
+                            if y < 200:
+                                self.num_cars_detected += 1
+                                self.objects_to_count[i]['is_counted'] = True
+                                index = next((index for (index, d) in enumerate(self.time_tracker) if d["id"] == self.objects_to_count[i]['id']), None)
+                                del self.time_tracker[index]
+                                # del self.objects_to_count[i]
+                                
+                
+                
+               # print('o: ' + str(len(self.objects_to_count)) + 't: ' + str(len(self.time_tracker)))
+                
+                
+                # objects_to_count = objects      f
+                # if len(self.objects_to_count) > 0:
+                #     for i in range(len(self.objects_to_count)):
+                #         print(self.objects_to_count[i])
+                        # print(str(int(i)) + ' asdas')
+                        # print(objects_to_count[i])
+                        # if objects_to_count[i]['is_counted'] == False:
+                        #     (x, y) = objects_to_count[i]['coords']
+                            
+                        #     if y < 200:
+                        #         self.num_cars_detected += 1
+                        #         objects_to_count[i]['is_counted'] = True
 
-                if len(objects_to_count) > 0:
-                    for i in range(len(objects_to_count)):
-                        (x_start, y_start, x_end, y_end) = objects_to_count[i]
-                        # y_ave = int(round((y_start + y_end) / 2))
-                        # print('y ave: ' + str(y_ave))
-                        # y_range =
-                        if 200 in range(y_start, y_end):
-                            self.num_cars_detected += 1
-                            print(objects_to_count)
-                            # remove f counted
-                            del objects_to_count[i]
-                            break
+                        #     (xstart, ystart, xend, yend)= objects_to_count[i]['coords']
+                            
+                        #     print(ystart, yend)
+                            
+                            
+                        #     if 200 in range(ystart, yend):
+                        #         print('inrange')
+                        #         cv.waitKey(0)
+                        #         self.num_cars_detected += 1
+                        #         # objects_to_count[i]['is_counted'] = True
+                        #         objects_to_count.pop(i)
+                        #         break
+                            
+                            # if objects_to_count[i]['centroid'][1] <= 200:
+                            #     # count
+                            #     self.num_cars_detected += 1
+                            #     print(self.num_cars_detected)
+                            #     objects_to_count[i]['is_counted'] = True
 
-                # print('num: ' + str(self.num_cars_detected))
-                #
-                img = cv.line(img, (372, 200), (861, 200), (255, 0, 0,), 2)
+                # Purge counted centroids
+                # print(objects_to_count)
+                # for i in range((len(objects_to_count))):
+                #     if objects_to_count[i]['is_counted'] == True:
+                #         elements_to_pop.append(i)
+                     
+   
+                # print(elements_to_pop)
+
+                # for x in range(int(len(elements_to_pop))):
+                #     objects_to_count.pop(int(x))
+                #     print(str(int(x)) + ' popped')
+
+                # img = cv.line(img, (372, 200), (861, 200), (255, 0, 0,), 2)
+                img = cv.line(img, (372, 100), (861, 100), (255, 0, 255), 1)
+                img = cv.line(img, (372, 200), (861, 200), (255, 255, 0), 1)
+                
+
 
                 self.carsDetected.setText(str(self.num_cars_detected))
                 # cv.waitKey(0)
@@ -290,9 +406,6 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
         def showConfig(self):
             print('Show config')
             self.config.show()
-
-
-
 
 
 # Static Methods
