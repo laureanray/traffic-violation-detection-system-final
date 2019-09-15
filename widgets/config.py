@@ -15,7 +15,7 @@ class Config(QWidget):
         # self.closeButton.clicked.connect(self.close)
         # Load the saved config file
 
-        config.load_config()
+        config.loadConfig()
 
         self.camera1URL.setText(State.config_dict['CAMERA_1'])
         self.camera2URL.setText(State.config_dict['CAMERA_2'])

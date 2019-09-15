@@ -42,31 +42,28 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
 
             # Load GUI
             uic.loadUi('user_interface/main.ui', self)
-            self.imageLabel.setScaledContents(True)
-            self.trafficLight.setScaledContents(True)
-            self.config = Config()
-            self.config.setWindowModality(QtCore.Qt.ApplicationModal)
-            self.config.setFixedSize(QSize(630, 470))
+            # Initialize UI elements
+            self.initUI()
+          
             self.traffic_light = None
             self.traffic_camera = None
-            self.setWindowTitle('Detection Window')
-            self.timer = QtCore.QTimer(self, interval=1)
-            self.clock_timer = QtCore.QTimer(self, interval=1000)
-            self.timer.timeout.connect(self.update_traffic_light_frame)
-            self.timer.timeout.connect(self.update_traffic_frame)
-            self.clock_timer.timeout.connect(self.update_clock)
-            self.camera_selected = True
-            self.num_cars_detected = 0
-            self.carsDetected.setText(str(self.num_cars_detected))
+
+            # Initialize Timers
+            self.initializeTimers()
+         
+            # State and Static Variables
+            self.cameraSelected = True
+            self.numOfCarsDetected = 0
+            self.carsDetected.setText(str(self.numOfCarsDetected))
             self.H = None
             self.W = None
-            self.clock_timer.start()
+            self.clockTimer.start()
             self.frame = 0
-            self.objects_to_count = []
-            self.time_tracker = []
+            self.objectsToCount = []
+            self.timeTracker = []
 
             # Load config before starting camera
-            config.load_config()
+            config.loadConfig()
             # Start camera
             self.start_camera()
             self.stopButton.clicked.connect(self.stop)
@@ -77,6 +74,28 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
 
             self.contours = np.array([[362, 85], [680, 85], [1280, 368], [1280, 720], [470, 720]])
 
+        def initializeTimers(self):
+            # This is responseible for the frame timing
+            self.frameTimer = QtCore.QTimer(self, interval=1)
+            # This updates the clock
+            self.clockTimer = QtCore.QTimer(self, interval=1000)
+            # This sets the http requests every 5 seconds
+            self.networkTimer = QtCore.QTimer(self, interval=5000)
+            
+            # Connect the function dependent on the timers
+            self.frameTimer.timeout.connect(self.updateTrafficLightFrame)
+            self.frameTimer.timeout.connect(self.updateTrafficFrame)
+            self.clockTimer.timeout.connect(self.updateClock)
+            
+
+        def initUI(self):
+            self.imageLabel.setScaledContents(True)
+            self.trafficLight.setScaledContents(True)
+            self.config = Config()
+            self.config.setWindowModality(QtCore.Qt.ApplicationModal)
+            self.config.setFixedSize(QSize(630, 470))
+            self.setWindowTitle('Detection Window')
+
         def stop(self):
             self.traffic_light.release()
             self.traffic_camera.release()
@@ -85,7 +104,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             sys.exit()
 
         @QtCore.pyqtSlot()
-        def update_clock(self):
+        def updateClock(self):
             now = datetime.datetime.now()
             self.day.setText(now.strftime("%A"))
             self.date.setText(now.strftime("%B %d, %Y"))
@@ -104,10 +123,10 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                 self.traffic_camera.set(cv.CAP_PROP_FRAME_WIDTH, 1920)
                 self.traffic_camera.set(cv.CAP_PROP_FRAME_HEIGHT, 1080)
 
-            self.timer.start()
+            self.frameTimer.start()
 
         @QtCore.pyqtSlot()
-        def update_traffic_light_frame(self):
+        def updateTrafficLightFrame(self):
 
             ret, frame = self.traffic_light.read()
             self.camera1_frame = cv.resize(frame, (1280, 720))
@@ -133,30 +152,22 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             displayTraffic(image_, True, self.trafficLight)
 
         @QtCore.pyqtSlot()
-        def update_traffic_frame(self):
-            # print('frame: ' + str(self.frame))
+        def updateTrafficFrame(self):
             self.frame += 1
-            
-            # print('###')
-            # print(len(ct.disappeared))
-            # print('###')
-            
-            
             flag, self.camera2_frame = self.traffic_camera.read()
             resized = cv.resize(self.camera2_frame, (1280, 720))
 
-            if self.frame < 130:
-                return
-            else:
-                self.timer.setInterval(250)
+            # if self.frame < 130:
+            #     return
+            # else:
+            #     self.frameTimer.setInterval(250)
             
             roi = None
 
-            if self.camera_selected and sess:
+            if self.cameraSelected and sess:
                 
                 img = cv.resize(resized, (1280, 720))
                 # Add the roi to the image
-
                 rows = img.shape[0]
                 cols = img.shape[1]
                 inp = cv.resize(img, (300, 300))
@@ -190,24 +201,12 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                         bottom = bbox[2] * rows
                         rect = np.array([x, y, right, bottom])
                         rects.append(rect.astype("int"))
-                        # print(rect)
-                        # print(classId)  # print(rect)
-                        # print(classId)
-                        # if classId == 1:
-                        # print('Car')
-                        # elif classId == 2:
-                        # print('Truck')
-                        # else:
-                        #     print('Truck')
-
                         new_x = int(x * 1.5)
                         new_y = int(y * 1.5)
                         new_right = int(right * 1.5)
                         new_bottom = int(bottom * 1.5)
-
                         cv.rectangle(img, (int(x), int(y)), (int(right), int(bottom)),
                                      (0, 255, 0), 2)
-
                         roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
 
                 objects = ct.update(rects)
@@ -218,140 +217,61 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                     cv.putText(img, text, (centroid[0] - 10, centroid[1] - 10),
                                cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                     cv.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
-
                     # check if the car is already counted if not append to array
                     # print(centroid[1])
                     if centroid[1] >= 100:
-                        if len(self.objects_to_count) > 0:
-                            for x in range(len(self.objects_to_count)):
+                        if len(self.objectsToCount) > 0:
+                            for x in range(len(self.objectsToCount)):
                                 # print('[x]: ' + str(x))
-                                # print(self.objects_to_count[x]['id'])
-                                # if objectID != self.objects_to_count[x]['id']:
-                                if not any(d['id'] == objectID for d in self.objects_to_count):
-                                    # print(str(objectID) + ' not equal to ' + str(self.objects_to_count[x]['id']))
+                                # print(self.objectsToCount[x]['id'])
+                                # if objectID != self.objectsToCount[x]['id']:
+                                if not any(d['id'] == objectID for d in self.objectsToCount):
+                                    # print(str(objectID) + ' not equal to ' + str(self.objectsToCount[x]['id']))
                                     dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
-                                    
                                     # Check if the objectid that the system is trying to add already in the self.objects_to_track list
-                                    check = next((index for (index, d) in enumerate(self.objects_to_count) if d["id"] == objectID), None)
-                                    
+                                    check = next((index for (index, d) in enumerate(self.objectsToCount) if d["id"] == objectID), None)
                                     # Check if the id has expired before adding to array
-                                    index = next((index for (index, d) in enumerate(self.time_tracker) if d["id"] == objectID), None)
-
+                                    index = next((index for (index, d) in enumerate(self.timeTracker) if d["id"] == objectID), None)
                                     if index is not None and check is not None:
                                         current_time = datetime.datetime.now()
-                                        
-                                        if current_time >= self.time_tracker[index]['time_exp']:
-                                            # print(current_time.time() + ' vs ' + self.time_tracker[index]['time_exp'].time(), end=' ')
-                                            self.objects_to_count.append(dict_)
-                                            self.time_tracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                        if current_time >= self.timeTracker[index]['time_exp']:
+                                            # print(current_time.time() + ' vs ' + self.timeTracker[index]['time_exp'].time(), end=' ')
+                                            self.objectsToCount.append(dict_)
+                                            self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
                                             # delete na yung tracker here?
-                                            self.time_tracker.pop(index)                                            
-                                        # else:
-                                            # print('DI PWEDE')
+                                            self.timeTracker.pop(index)                                            
                                     else:
-                                        # print("ELSA???")
-                                        # print(self.objects_to_count)
-                                        # print(index, check, end=' ')
                                         # Dont check the time just add new one
-                                        self.objects_to_count.append(dict_)
-                                        self.time_tracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                        self.objectsToCount.append(dict_)
+                                        self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
                                             
                                 else:
-                                    # print('ELSE')
-                                    index = next((index for (index, d) in enumerate(self.objects_to_count) if d["id"] == objectID), None)
-                                    #print(index)
+                                    index = next((index for (index, d) in enumerate(self.objectsToCount) if d["id"] == objectID), None)
                                     if index is not None:
-                                        self.objects_to_count[index]['coords'] = centroid      
-                                        print('UPDATE CENTROID')                  
-                                        
+                                        self.objectsToCount[index]['coords'] = centroid      
                         else:
                             dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
-                            self.objects_to_count.append(dict_)    
-                            self.time_tracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
-      
+                            self.objectsToCount.append(dict_)    
+                            self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+
                         cv.rectangle(img, (centroid[0] - 50, centroid[1] - 50), (centroid[0] + 50, centroid[1] + 50),
                                      (255, 255, 0), 1)
-
-                # if len(roi) > 0:
-                #     cv.imshow('roi', cv.resize(roi, (500, 250)))
-
-                # print(len(self.objects_to_count))
-                # print(len(self.time_tracker))          
                 
-                # for x in range(len(self.time_tracker)):
-                #     print(self.time_tracker[x]['time_exp'].time(), end=' ')      
-                    
-                
-                if len(self.objects_to_count) > 0:
-                    for i in range(len(self.objects_to_count)):
-                        if self.objects_to_count[i]['is_counted'] == False:
-                            (x, y) = self.objects_to_count[i]['coords']
+                if len(self.objectsToCount) > 0:
+                    for i in range(len(self.objectsToCount)):
+                        if self.objectsToCount[i]['is_counted'] == False:
+                            (x, y) = self.objectsToCount[i]['coords']
                             # print('y['+str(i)+']: ' + str(y))
                             if y < 200:
-                                self.num_cars_detected += 1
-                                self.objects_to_count[i]['is_counted'] = True
-                                index = next((index for (index, d) in enumerate(self.time_tracker) if d["id"] == self.objects_to_count[i]['id']), None)
-                                del self.time_tracker[index]
-                                # del self.objects_to_count[i]
-                                
-                
-                
-               # print('o: ' + str(len(self.objects_to_count)) + 't: ' + str(len(self.time_tracker)))
-                
-                
-                # objects_to_count = objects      f
-                # if len(self.objects_to_count) > 0:
-                #     for i in range(len(self.objects_to_count)):
-                #         print(self.objects_to_count[i])
-                        # print(str(int(i)) + ' asdas')
-                        # print(objects_to_count[i])
-                        # if objects_to_count[i]['is_counted'] == False:
-                        #     (x, y) = objects_to_count[i]['coords']
-                            
-                        #     if y < 200:
-                        #         self.num_cars_detected += 1
-                        #         objects_to_count[i]['is_counted'] = True
+                                self.numOfCarsDetected += 1
+                                self.objectsToCount[i]['is_counted'] = True
+                                index = next((index for (index, d) in enumerate(self.timeTracker) if d["id"] == self.objectsToCount[i]['id']), None)
+                                del self.timeTracker[index]
 
-                        #     (xstart, ystart, xend, yend)= objects_to_count[i]['coords']
-                            
-                        #     print(ystart, yend)
-                            
-                            
-                        #     if 200 in range(ystart, yend):
-                        #         print('inrange')
-                        #         cv.waitKey(0)
-                        #         self.num_cars_detected += 1
-                        #         # objects_to_count[i]['is_counted'] = True
-                        #         objects_to_count.pop(i)
-                        #         break
-                            
-                            # if objects_to_count[i]['centroid'][1] <= 200:
-                            #     # count
-                            #     self.num_cars_detected += 1
-                            #     print(self.num_cars_detected)
-                            #     objects_to_count[i]['is_counted'] = True
-
-                # Purge counted centroids
-                # print(objects_to_count)
-                # for i in range((len(objects_to_count))):
-                #     if objects_to_count[i]['is_counted'] == True:
-                #         elements_to_pop.append(i)
-                     
-   
-                # print(elements_to_pop)
-
-                # for x in range(int(len(elements_to_pop))):
-                #     objects_to_count.pop(int(x))
-                #     print(str(int(x)) + ' popped')
-
-                # img = cv.line(img, (372, 200), (861, 200), (255, 0, 0,), 2)
                 img = cv.line(img, (372, 100), (861, 100), (255, 0, 255), 1)
                 img = cv.line(img, (372, 200), (861, 200), (255, 255, 0), 1)
                 
-
-
-                self.carsDetected.setText(str(self.num_cars_detected))
-                # cv.waitKey(0)
+                self.carsDetected.setText(str(self.numOfCarsDetected))
 
                 # overlay = im/g.copy()
                 # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
@@ -381,8 +301,6 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                 # dst2 = bg + dst
                 #
                 # cv.imshow('dst2', dst)
-                #
-
                 # cv.waitKey(0)
                 displayImage(img, True, self.imageLabel)
                 # cv.imshow('img', img)
@@ -401,7 +319,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
 
         def changeCamera(self):
             self.start_camera()
-            self.camera_selected = not self.camera_selected
+            self.cameraSelected = not self.cameraSelected
 
         def showConfig(self):
             print('Show config')

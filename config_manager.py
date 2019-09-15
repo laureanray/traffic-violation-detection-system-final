@@ -1,17 +1,17 @@
 from application import State
 
-def open_file_writemode():
+def openFileWriteMode():
     State.config = open(State.config_path, "w+")
     print('write mode')
 
-def open_file_readmode():
+def openFileReadMode():
     State.config = open(State.config_path, "r+")
     print('read mode')
 
-def load_config():
+def loadConfig():
     data = []
     # Open config as read mode
-    open_file_readmode()
+    openFileReadMode()
 
     with State.config as file:
         data = file.readlines()

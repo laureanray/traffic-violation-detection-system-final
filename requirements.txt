@@ -1,0 +1,6 @@
+flask-socketio
+tensorflow
+numpy
+flask
+opencv
+pymongo

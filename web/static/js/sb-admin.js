@@ -40,6 +40,15 @@
 
   $(document).ready(function(){
     $("#dataTable").DataTable();
+
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket.on('connect', function() {
+        socket.emit('connected');
+        console.log('connected to server')
+    });
+    socket.on('message', function(data) {
+        $('h1').text(data)
+    });
   })
 
 })(jQuery); // End of use strict
