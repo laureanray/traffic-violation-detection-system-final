@@ -21,5 +21,3 @@ def sendRoutineUpdate(car_count):
 # def on_message(data):
 #     print('I received a message!')
 #     print(data)
-
-sendRoutineUpdate(2135)

@@ -16,7 +16,7 @@ from widgets.config import Config
 import config_manager as config
 import datetime
 import time
-
+from network import sendRoutineUpdate
 # Initialzie the object tracker
 
 
@@ -86,7 +86,13 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.frameTimer.timeout.connect(self.updateTrafficLightFrame)
             self.frameTimer.timeout.connect(self.updateTrafficFrame)
             self.clockTimer.timeout.connect(self.updateClock)
+            self.networkTimer.timeout.connect(self.sendUpdates)
+            self.networkTimer.start()
             
+
+        @QtCore.pyqtSlot()
+        def sendUpdates(self):
+            sendRoutineUpdate(self.numOfCarsDetected);
 
         def initUI(self):
             self.imageLabel.setScaledContents(True)
@@ -155,157 +161,162 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
         def updateTrafficFrame(self):
             self.frame += 1
             flag, self.camera2_frame = self.traffic_camera.read()
-            resized = cv.resize(self.camera2_frame, (1280, 720))
 
-            # if self.frame < 130:
-            #     return
-            # else:
-            #     self.frameTimer.setInterval(250)
-            
-            roi = None
+            if not flag:
+                self.camera2_frame = cv.imread('standby.jpg', 0)
+                displayImage(self.camera2_frame, True, self.imageLabel)
+            else:
+                resized = cv.resize(self.camera2_frame, (1280, 720))
 
-            if self.cameraSelected and sess:
-                
-                img = cv.resize(resized, (1280, 720))
-                # Add the roi to the image
-                rows = img.shape[0]
-                cols = img.shape[1]
-                inp = cv.resize(img, (300, 300))
-                inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
+                # if self.frame < 130:
+                #     return
+                # else:
+                #     self.frameTimer.setInterval(250)
 
-                if self.W is None or self.H is None:
-                    (self.H, self.W) = img.shape[:2]
+                roi = None
 
-                # Run the model
-                out = sess.run([sess.graph.get_tensor_by_name('num_detections:0'),
-                                sess.graph.get_tensor_by_name('detection_scores:0'),
-                                sess.graph.get_tensor_by_name('detection_boxes:0'),
-                                sess.graph.get_tensor_by_name('detection_classes:0')],
-                               feed_dict={'image_tensor:0': inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
+                if self.cameraSelected and sess:
 
-                # Visualize detected bounding boxes.
-                num_detections = int(out[0][0])
-                roi = []
-                rects = []
+                    img = cv.resize(resized, (1280, 720))
+                    # Add the roi to the image
+                    rows = img.shape[0]
+                    cols = img.shape[1]
+                    inp = cv.resize(img, (300, 300))
+                    inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
 
-                # Loop over the detections
-                for i in range(num_detections):
-                    classId = int(out[3][0][i])
-                    score = float(out[1][0][i])
+                    if self.W is None or self.H is None:
+                        (self.H, self.W) = img.shape[:2]
 
-                    bbox = [float(v) for v in out[2][0][i]]
-                    if score > 0.5:
-                        x = bbox[1] * cols
-                        y = bbox[0] * rows
-                        right = bbox[3] * cols
-                        bottom = bbox[2] * rows
-                        rect = np.array([x, y, right, bottom])
-                        rects.append(rect.astype("int"))
-                        new_x = int(x * 1.5)
-                        new_y = int(y * 1.5)
-                        new_right = int(right * 1.5)
-                        new_bottom = int(bottom * 1.5)
-                        cv.rectangle(img, (int(x), int(y)), (int(right), int(bottom)),
-                                     (0, 255, 0), 2)
-                        roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
+                    # Run the model
+                    out = sess.run([sess.graph.get_tensor_by_name('num_detections:0'),
+                                    sess.graph.get_tensor_by_name('detection_scores:0'),
+                                    sess.graph.get_tensor_by_name('detection_boxes:0'),
+                                    sess.graph.get_tensor_by_name('detection_classes:0')],
+                                   feed_dict={'image_tensor:0': inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
 
-                objects = ct.update(rects)
+                    # Visualize detected bounding boxes.
+                    num_detections = int(out[0][0])
+                    roi = []
+                    rects = []
 
-                for (objectID, centroid) in objects.items():
-                    # object on the output frame
-                    text = "ID {}".format(objectID)
-                    cv.putText(img, text, (centroid[0] - 10, centroid[1] - 10),
-                               cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                    cv.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
-                    # check if the car is already counted if not append to array
-                    # print(centroid[1])
-                    if centroid[1] >= 100:
-                        if len(self.objectsToCount) > 0:
-                            for x in range(len(self.objectsToCount)):
-                                # print('[x]: ' + str(x))
-                                # print(self.objectsToCount[x]['id'])
-                                # if objectID != self.objectsToCount[x]['id']:
-                                if not any(d['id'] == objectID for d in self.objectsToCount):
-                                    # print(str(objectID) + ' not equal to ' + str(self.objectsToCount[x]['id']))
-                                    dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
-                                    # Check if the objectid that the system is trying to add already in the self.objects_to_track list
-                                    check = next((index for (index, d) in enumerate(self.objectsToCount) if d["id"] == objectID), None)
-                                    # Check if the id has expired before adding to array
-                                    index = next((index for (index, d) in enumerate(self.timeTracker) if d["id"] == objectID), None)
-                                    if index is not None and check is not None:
-                                        current_time = datetime.datetime.now()
-                                        if current_time >= self.timeTracker[index]['time_exp']:
-                                            # print(current_time.time() + ' vs ' + self.timeTracker[index]['time_exp'].time(), end=' ')
+                    # Loop over the detections
+                    for i in range(num_detections):
+                        classId = int(out[3][0][i])
+                        score = float(out[1][0][i])
+
+                        bbox = [float(v) for v in out[2][0][i]]
+                        if score > 0.5:
+                            x = bbox[1] * cols
+                            y = bbox[0] * rows
+                            right = bbox[3] * cols
+                            bottom = bbox[2] * rows
+                            rect = np.array([x, y, right, bottom])
+                            rects.append(rect.astype("int"))
+                            new_x = int(x * 1.5)
+                            new_y = int(y * 1.5)
+                            new_right = int(right * 1.5)
+                            new_bottom = int(bottom * 1.5)
+                            cv.rectangle(img, (int(x), int(y)), (int(right), int(bottom)),
+                                         (0, 255, 0), 2)
+                            roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
+
+                    objects = ct.update(rects)
+
+                    for (objectID, centroid) in objects.items():
+                        # object on the output frame
+                        text = "ID {}".format(objectID)
+                        cv.putText(img, text, (centroid[0] - 10, centroid[1] - 10),
+                                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                        cv.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
+                        # check if the car is already counted if not append to array
+                        # print(centroid[1])
+                        if centroid[1] >= 100:
+                            if len(self.objectsToCount) > 0:
+                                for x in range(len(self.objectsToCount)):
+                                    # print('[x]: ' + str(x))
+                                    # print(self.objectsToCount[x]['id'])
+                                    # if objectID != self.objectsToCount[x]['id']:
+                                    if not any(d['id'] == objectID for d in self.objectsToCount):
+                                        # print(str(objectID) + ' not equal to ' + str(self.objectsToCount[x]['id']))
+                                        dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
+                                        # Check if the objectid that the system is trying to add already in the self.objects_to_track list
+                                        check = next((index for (index, d) in enumerate(self.objectsToCount) if d["id"] == objectID), None)
+                                        # Check if the id has expired before adding to array
+                                        index = next((index for (index, d) in enumerate(self.timeTracker) if d["id"] == objectID), None)
+                                        if index is not None and check is not None:
+                                            current_time = datetime.datetime.now()
+                                            if current_time >= self.timeTracker[index]['time_exp']:
+                                                # print(current_time.time() + ' vs ' + self.timeTracker[index]['time_exp'].time(), end=' ')
+                                                self.objectsToCount.append(dict_)
+                                                self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                                # delete na yung tracker here?
+                                                self.timeTracker.pop(index)
+                                        else:
+                                            # Dont check the time just add new one
                                             self.objectsToCount.append(dict_)
                                             self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
-                                            # delete na yung tracker here?
-                                            self.timeTracker.pop(index)                                            
+
                                     else:
-                                        # Dont check the time just add new one
-                                        self.objectsToCount.append(dict_)
-                                        self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
-                                            
-                                else:
-                                    index = next((index for (index, d) in enumerate(self.objectsToCount) if d["id"] == objectID), None)
-                                    if index is not None:
-                                        self.objectsToCount[index]['coords'] = centroid      
-                        else:
-                            dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
-                            self.objectsToCount.append(dict_)    
-                            self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                        index = next((index for (index, d) in enumerate(self.objectsToCount) if d["id"] == objectID), None)
+                                        if index is not None:
+                                            self.objectsToCount[index]['coords'] = centroid
+                            else:
+                                dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
+                                self.objectsToCount.append(dict_)
+                                self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
 
-                        cv.rectangle(img, (centroid[0] - 50, centroid[1] - 50), (centroid[0] + 50, centroid[1] + 50),
-                                     (255, 255, 0), 1)
-                
-                if len(self.objectsToCount) > 0:
-                    for i in range(len(self.objectsToCount)):
-                        if self.objectsToCount[i]['is_counted'] == False:
-                            (x, y) = self.objectsToCount[i]['coords']
-                            # print('y['+str(i)+']: ' + str(y))
-                            if y < 200:
-                                self.numOfCarsDetected += 1
-                                self.objectsToCount[i]['is_counted'] = True
-                                index = next((index for (index, d) in enumerate(self.timeTracker) if d["id"] == self.objectsToCount[i]['id']), None)
-                                del self.timeTracker[index]
+                            cv.rectangle(img, (centroid[0] - 50, centroid[1] - 50), (centroid[0] + 50, centroid[1] + 50),
+                                         (255, 255, 0), 1)
 
-                img = cv.line(img, (372, 100), (861, 100), (255, 0, 255), 1)
-                img = cv.line(img, (372, 200), (861, 200), (255, 255, 0), 1)
-                
-                self.carsDetected.setText(str(self.numOfCarsDetected))
+                    if len(self.objectsToCount) > 0:
+                        for i in range(len(self.objectsToCount)):
+                            if self.objectsToCount[i]['is_counted'] == False:
+                                (x, y) = self.objectsToCount[i]['coords']
+                                # print('y['+str(i)+']: ' + str(y))
+                                if y < 200:
+                                    self.numOfCarsDetected += 1
+                                    self.objectsToCount[i]['is_counted'] = True
+                                    index = next((index for (index, d) in enumerate(self.timeTracker) if d["id"] == self.objectsToCount[i]['id']), None)
+                                    del self.timeTracker[index]
 
-                # overlay = im/g.copy()
-                # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
-                # alpha = 0.4
-                # img = cv.addWeighted(overlay, alpha, img, 1 - alpha, 0)
-                # cv.imshow('img', img)
+                    img = cv.line(img, (372, 100), (861, 100), (255, 0, 255), 1)
+                    img = cv.line(img, (372, 200), (861, 200), (255, 255, 0), 1)
 
-                # 1
-                # bounding = cv.boundingRect(self.contours)
-                # x, y, w, h = bounding
-                # cropped = img[y:y+h, x:x+h].copy()
-                #
-                # # Make mask
-                # pts = self.contours - self.contours.min(axis=0)
-                #
-                # mask = np.zeros(cropped.shape[:2], np.uint8)
-                # cv.drawContours(mask, [pts], -1, (255, 255, 255), -1, cv.LINE_AA)
-                #
-                # # do bit op
-                # dst = cv.bitwise_and(cropped, cropped, mask=mask)
-                #
-                #
-                # # add white background
-                # bg = np.ones_like(cropped, np.uint8) * 255
-                # cv.bitwise_not(bg, bg, mask=mask)
-                #
-                # dst2 = bg + dst
-                #
-                # cv.imshow('dst2', dst)
-                # cv.waitKey(0)
-                displayImage(img, True, self.imageLabel)
-                # cv.imshow('img', img)
-            else:
-                displayImage(self.camera1_frame, True, self.imageLabel)
+                    self.carsDetected.setText(str(self.numOfCarsDetected))
+
+                    # overlay = im/g.copy()
+                    # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
+                    # alpha = 0.4
+                    # img = cv.addWeighted(overlay, alpha, img, 1 - alpha, 0)
+                    # cv.imshow('img', img)
+
+                    # 1
+                    # bounding = cv.boundingRect(self.contours)
+                    # x, y, w, h = bounding
+                    # cropped = img[y:y+h, x:x+h].copy()
+                    #
+                    # # Make mask
+                    # pts = self.contours - self.contours.min(axis=0)
+                    #
+                    # mask = np.zeros(cropped.shape[:2], np.uint8)
+                    # cv.drawContours(mask, [pts], -1, (255, 255, 255), -1, cv.LINE_AA)
+                    #
+                    # # do bit op
+                    # dst = cv.bitwise_and(cropped, cropped, mask=mask)
+                    #
+                    #
+                    # # add white background
+                    # bg = np.ones_like(cropped, np.uint8) * 255
+                    # cv.bitwise_not(bg, bg, mask=mask)
+                    #
+                    # dst2 = bg + dst
+                    #
+                    # cv.imshow('dst2', dst)
+                    # cv.waitKey(0)
+                    displayImage(img, True, self.imageLabel)
+                    # cv.imshow('img', img)
+                else:
+                    displayImage(self.camera1_frame, True, self.imageLabel)
 
         @QtCore.pyqtSlot()
         def capture_image(self):
