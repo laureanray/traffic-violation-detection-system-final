@@ -24,5 +24,16 @@ def add_violation():
     return 'JSON ok'
 
 
+@app.route('update_num_car_detected', methods=['POST'])
+def update_num_car():
+    if request.is_json:
+        data = request.get_json()
+        col = db['num-car-detected']
+
+
 if __name__ == '__main__':
+    app.run(debug=True)
+
+
+def runServer():
     app.run(debug=True)

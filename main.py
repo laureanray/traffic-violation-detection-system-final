@@ -14,6 +14,8 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 from application import State, Details
 from widgets.config import Config
 import config_manager as config
+import datetime
+import time
 
 # Initialzie the object tracker
 
@@ -49,13 +51,16 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.traffic_camera = None
             self.setWindowTitle('Detection Window')
             self.timer = QtCore.QTimer(self, interval=1)
+            self.clock_timer = QtCore.QTimer(self, interval=1000)
             self.timer.timeout.connect(self.update_traffic_light_frame)
             self.timer.timeout.connect(self.update_traffic_frame)
+            self.clock_timer.timeout.connect(self.update_clock)
             self.camera_selected = True
             self.num_cars_detected = 0
             self.carsDetected.setText(str(self.num_cars_detected))
             self.H = None
             self.W = None
+            self.clock_timer.start()
 
             # Load config before starting camera
             config.load_config()
@@ -75,6 +80,13 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             # Close the tf session
             sess.close()
             sys.exit()
+
+        @QtCore.pyqtSlot()
+        def update_clock(self):
+            now = datetime.datetime.now()
+            self.day.setText(now.strftime("%A"))
+            self.date.setText(now.strftime("%B %d, %Y"))
+            self.time.setText(time.strftime("%H:%M:%S", time.localtime()))
 
         @QtCore.pyqtSlot()
         def start_camera(self):
@@ -255,9 +267,9 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                 # cv.imshow('dst2', dst)
                 #
 
-                cv.waitKey(0)
-                # displayImage(img, True, self.imageLabel)
-                cv.imshow('img', img)
+                # cv.waitKey(0)
+                displayImage(img, True, self.imageLabel)
+                # cv.imshow('img', img)
             else:
                 displayImage(self.camera1_frame, True, self.imageLabel)
 

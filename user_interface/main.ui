@@ -302,7 +302,7 @@ color: white</string>
     <string>Maintenance</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_12">
+  <widget class="QLabel" name="day">
    <property name="geometry">
     <rect>
      <x>1200</x>
@@ -320,7 +320,7 @@ color: white</string>
     <string>MONDAY</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_13">
+  <widget class="QLabel" name="time">
    <property name="geometry">
     <rect>
      <x>1200</x>
@@ -340,7 +340,7 @@ color: white</string>
     <string>7:02 PM</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_14">
+  <widget class="QLabel" name="date">
    <property name="geometry">
     <rect>
      <x>1200</x>
