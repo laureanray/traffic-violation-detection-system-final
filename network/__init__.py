@@ -17,6 +17,10 @@ def sendRoutineUpdate(car_count):
   response = connection.getresponse()
   sio.emit('update', {'message': 'update'})
 
+
+def closeConnection():
+  connection.close()
+  sio.disconnect()
 # @sio.on('message')
 # def on_message(data):
 #     print('I received a message!')

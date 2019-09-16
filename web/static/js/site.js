@@ -2,14 +2,14 @@ var socket = io.connect('http://' + document.domain + ':' + location.port);
 socket.on('connect', function() {
     socket.emit('connected');
     getLatestData(function(data){
-      $("#car_count").html('Car Detected: ' + data.cars_detected);
+      $("#car_count").html(data.cars_detected);
   });
 });
 socket.on('update', function(data) {
     // $('h1').text(data)
     console.log("May update");
     getLatestData(function(data){
-        $("#car_count").html('Car Detected: ' + data.cars_detected);
+        $("#car_count").html(data.cars_detected);
     });
 });
 

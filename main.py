@@ -16,12 +16,12 @@ from widgets.config import Config
 import config_manager as config
 import datetime
 import time
-from network import sendRoutineUpdate
+import network as net
 # Initialzie the object tracker
 
 
 # Read the graph.
-with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/frozen_inference_graph.pb', 'rb') as f:
+with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
     graph_def = tf.GraphDef()
     graph_def.ParseFromString(f.read())
 
@@ -72,7 +72,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.camera1_frame = None
             self.camera2_frame = None
 
-            self.contours = np.array([[362, 85], [680, 85], [1280, 368], [1280, 720], [470, 720]])
+            self.contours = np.array([[362, 85], [800, 85], [1280, 300], [1280, 720], [470, 720]])
 
         def initializeTimers(self):
             # This is responseible for the frame timing
@@ -80,19 +80,19 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             # This updates the clock
             self.clockTimer = QtCore.QTimer(self, interval=1000)
             # This sets the http requests every 5 seconds
-            self.networkTimer = QtCore.QTimer(self, interval=5000)
+            # self.networkTimer = QtCore.QTimer(self, interval=5000)
             
             # Connect the function dependent on the timers
             self.frameTimer.timeout.connect(self.updateTrafficLightFrame)
             self.frameTimer.timeout.connect(self.updateTrafficFrame)
             self.clockTimer.timeout.connect(self.updateClock)
-            self.networkTimer.timeout.connect(self.sendUpdates)
-            self.networkTimer.start()
+            # self.networkTimer.timeout.connect(self.sendUpdates)
+            # self.networkTimer.start()
             
 
         @QtCore.pyqtSlot()
         def sendUpdates(self):
-            sendRoutineUpdate(self.numOfCarsDetected);
+            net.sendRoutineUpdate(self.numOfCarsDetected);
 
         def initUI(self):
             self.imageLabel.setScaledContents(True)
@@ -103,11 +103,19 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
             self.setWindowTitle('Detection Window')
 
         def stop(self):
+            print('stop')
             self.traffic_light.release()
             self.traffic_camera.release()
             # Close the tf session
-            sess.close()
+            net.closeConnection()
             sys.exit()
+            
+            try:
+                sys.exit()
+            except:
+                print(sys.exc_info()[0])
+                
+            sess.close()
 
         @QtCore.pyqtSlot()
         def updateClock(self):
@@ -181,8 +189,29 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                     # Add the roi to the image
                     rows = img.shape[0]
                     cols = img.shape[1]
-                    inp = cv.resize(img, (300, 300))
+                    
+                          # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
+                    # alpha = 0.4
+                    # img = cv.addWeighted(overlay, alpha, img, 1 - alpha, 0)
+                    # cv.imshow('img', img)
+
+                    # 1
+                    # bounding = cv.boundingRect(self.contours)
+                    # x, y, w, h = bounding
+                    # cropped = img[y:y+h, x:x+h].copy()
+                    
+                    img_copy = img.copy()
+                    
+                    # Make mask
+                    # pts = self.contours - self.contours.min(axis=0)
+                    
+                    mask = np.zeros(img_copy.shape[:2], np.uint8)
+                    cv.drawContours(mask, [self.contours], -1, (255, 255, 255), -1, cv.LINE_AA)
+                    # do bit op
+                    dst = cv.bitwise_and(img_copy, img_copy, mask=mask)
+                    inp = cv.resize(dst, (300, 300))
                     inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
+                    overlay = img.copy()
 
                     if self.W is None or self.H is None:
                         (self.H, self.W) = img.shape[:2]
@@ -196,7 +225,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
 
                     # Visualize detected bounding boxes.
                     num_detections = int(out[0][0])
-                    roi = []
+                    rois = []
                     rects = []
 
                     # Loop over the detections
@@ -218,9 +247,19 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                             new_bottom = int(bottom * 1.5)
                             cv.rectangle(img, (int(x), int(y)), (int(right), int(bottom)),
                                          (0, 255, 0), 2)
+                            
+                            
                             roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
-
+                            rois.append(roi)
+                            
+                    
+                    for x in range(len(rois)):
+                        cv.imshow('roi', rois[x])
+                        cv.waitKey(0)                           
+                            
                     objects = ct.update(rects)
+                                      
+                    
 
                     for (objectID, centroid) in objects.items():
                         # object on the output frame
@@ -265,7 +304,7 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                                 self.objectsToCount.append(dict_)
                                 self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
 
-                            cv.rectangle(img, (centroid[0] - 50, centroid[1] - 50), (centroid[0] + 50, centroid[1] + 50),
+                            cv.rectangle(img, (centroid[0] - 125, centroid[1] - 125), (centroid[0] + 125, centroid[1] + 125),
                                          (255, 255, 0), 1)
 
                     if len(self.objectsToCount) > 0:
@@ -276,45 +315,33 @@ with tf.gfile.FastGFile('/home/lr/Downloads/new-trained/car_inference_graph/froz
                                 if y < 200:
                                     self.numOfCarsDetected += 1
                                     self.objectsToCount[i]['is_counted'] = True
+                                    
+                                    print(self.objectsToCount[i]['coords'])
+                                    
                                     index = next((index for (index, d) in enumerate(self.timeTracker) if d["id"] == self.objectsToCount[i]['id']), None)
+                                    
                                     del self.timeTracker[index]
+                                    
+                                    self.sendUpdates()
 
                     img = cv.line(img, (372, 100), (861, 100), (255, 0, 255), 1)
                     img = cv.line(img, (372, 200), (861, 200), (255, 255, 0), 1)
 
                     self.carsDetected.setText(str(self.numOfCarsDetected))
 
-                    # overlay = im/g.copy()
-                    # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
-                    # alpha = 0.4
-                    # img = cv.addWeighted(overlay, alpha, img, 1 - alpha, 0)
-                    # cv.imshow('img', img)
-
-                    # 1
-                    # bounding = cv.boundingRect(self.contours)
-                    # x, y, w, h = bounding
-                    # cropped = img[y:y+h, x:x+h].copy()
-                    #
-                    # # Make mask
-                    # pts = self.contours - self.contours.min(axis=0)
-                    #
-                    # mask = np.zeros(cropped.shape[:2], np.uint8)
-                    # cv.drawContours(mask, [pts], -1, (255, 255, 255), -1, cv.LINE_AA)
-                    #
-                    # # do bit op
-                    # dst = cv.bitwise_and(cropped, cropped, mask=mask)
-                    #
-                    #
+                    
+                    
+                    
                     # # add white background
-                    # bg = np.ones_like(cropped, np.uint8) * 255
+                    # bg = np.ones_like(img_copy, np.uint8) * 255
                     # cv.bitwise_not(bg, bg, mask=mask)
-                    #
+                    
                     # dst2 = bg + dst
-                    #
-                    # cv.imshow('dst2', dst)
+                    
+                    cv.imshow('dst2', dst)
                     # cv.waitKey(0)
                     displayImage(img, True, self.imageLabel)
-                    # cv.imshow('img', img)
+                    cv.imshow('img', img)
                 else:
                     displayImage(self.camera1_frame, True, self.imageLabel)
 
