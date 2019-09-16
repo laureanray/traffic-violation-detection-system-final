@@ -16,7 +16,9 @@ from widgets.config import Config
 import config_manager as config
 import datetime
 import time
-import network as net
+from network import Net
+import web.app as web
+import threading, time
 # Initialzie the object tracker
 
 
@@ -39,6 +41,13 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
         def __init__(self):
             super(Main, self).__init__()
             tf.import_graph_def(graph_def, name='')
+            
+            # Start the webserver first
+            self.initializeWebServer()
+            
+            time.sleep(10)
+            # Then start the socketio client to send realtime updates
+            self.net = Net()
 
             # Load GUI
             uic.loadUi('user_interface/main.ui', self)
@@ -92,7 +101,13 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
 
         @QtCore.pyqtSlot()
         def sendUpdates(self):
-            net.sendRoutineUpdate(self.numOfCarsDetected);
+            self.net.sendRoutineUpdate(self.numOfCarsDetected);
+            
+        @QtCore.pyqtSlot()
+        def initializeWebServer(self):
+            print('starting server')
+            web.runServerOnThread()
+                        
 
         def initUI(self):
             self.imageLabel.setScaledContents(True)

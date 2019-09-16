@@ -5,6 +5,7 @@ from flask import jsonify
 from flask_socketio import SocketIO, send, emit
 from bson import Binary, Code
 from bson.json_util import dumps
+import threading, time
 
 client = pymongo.MongoClient("mongodb://localhost:27017")
 db = client["tvds-dev"]
@@ -110,8 +111,11 @@ if __name__ == '__main__':
     socketio.run(app)
 
 
-# def runServer():
-#     app.run(debug=True)
+
+def runServer():
+    socketio.run(app)
 
 
-# runServer()
+def runServerOnThread():    
+    thread = threading.Thread(target = runServer)
+    thread.start();
