@@ -6,6 +6,7 @@ from flask_socketio import SocketIO, send, emit
 from bson import Binary, Code
 from bson.json_util import dumps
 import threading, time
+from multiprocessing import Process
 
 client = pymongo.MongoClient("mongodb://localhost:27017")
 db = client["tvds-dev"]
@@ -15,6 +16,8 @@ global_collection = db['global']
 app = Flask(__name__)
 
 socketio = SocketIO(app)
+
+
 
 @app.route('/')
 def index():
@@ -115,7 +118,12 @@ if __name__ == '__main__':
 def runServer():
     socketio.run(app)
 
+# thread = threading.Thread(target = runServer)
+process = Process(target = runServer)
+
 
 def runServerOnThread():    
-    thread = threading.Thread(target = runServer)
-    thread.start();
+    process.start()
+    
+def shutdownServerOnThread():
+    process.terminate()

@@ -13,7 +13,7 @@ class Net:
   def sendRoutineUpdate(self, car_count):
     payload = {'cars_detected': car_count}
     json_payload = json.dumps(payload)
-    self.connection.request('POST', '/update_car_count', json_payload, headers)
+    self.connection.request('POST', '/update_car_count', json_payload, self.headers)
     response = self.connection.getresponse()
     self.sio.emit('update', {'message': 'update'})
 

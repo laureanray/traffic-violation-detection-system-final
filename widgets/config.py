@@ -19,9 +19,9 @@ class Config(QWidget):
 
         self.camera1URL.setText(State.config_dict['CAMERA_1'])
         self.camera2URL.setText(State.config_dict['CAMERA_2'])
-
         self.closeButton.clicked.connect(self.close)
         self.camera1URLButton.clicked.connect(self.loadFootageCamera1)
+        self.setWindowTitle('Configuration')
 
     def loadFootageCamera1(self):
         options = QFileDialog.Options()
@@ -30,3 +30,6 @@ class Config(QWidget):
                                                   "All Files (*);;Python Files (*.py)", options=options)
         if fileName:
             print(fileName)
+
+
+    

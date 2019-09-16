@@ -41,25 +41,22 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
         def __init__(self):
             super(Main, self).__init__()
             tf.import_graph_def(graph_def, name='')
-            
             # Start the webserver first
             self.initializeWebServer()
-            
-            time.sleep(10)
+            # This gives the server time start before actually trying to connect to it.
+            time.sleep(5)
             # Then start the socketio client to send realtime updates
             self.net = Net()
-
             # Load GUI
             uic.loadUi('user_interface/main.ui', self)
             # Initialize UI elements
             self.initUI()
-          
             self.traffic_light = None
             self.traffic_camera = None
 
             # Initialize Timers
             self.initializeTimers()
-         
+
             # State and Static Variables
             self.cameraSelected = True
             self.numOfCarsDetected = 0
@@ -73,6 +70,7 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
 
             # Load config before starting camera
             config.loadConfig()
+
             # Start camera
             self.start_camera()
             self.stopButton.clicked.connect(self.stop)
@@ -117,20 +115,27 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
             self.config.setFixedSize(QSize(630, 470))
             self.setWindowTitle('Detection Window')
 
-        def stop(self):
-            print('stop')
+        def stop(self):            
+            # Release the source first (ip cam or footage)
             self.traffic_light.release()
             self.traffic_camera.release()
             # Close the tf session
-            net.closeConnection()
-            sys.exit()
+            sess.close()
+
+            # Close the http client connection
+            self.net.closeConnection()
             
+            # Shutdown thewebserver
+            web.shutdownServerOnThread()
+
+            # Exit Gracefully
+            sys.exit()
+
             try:
                 sys.exit()
             except:
                 print(sys.exc_info()[0])
                 
-            sess.close()
 
         @QtCore.pyqtSlot()
         def updateClock(self):
@@ -156,29 +161,36 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
 
         @QtCore.pyqtSlot()
         def updateTrafficLightFrame(self):
-
             ret, frame = self.traffic_light.read()
-            self.camera1_frame = cv.resize(frame, (1280, 720))
-            x = 301 * 2
-            y = 182 * 2
-            w = 7 * 2
-            h = 16 * 2
-            roi = self.camera1_frame[y:y + h, x:x + w]
 
-            displayImage(self.camera1_frame, True, self.imageLabel)
-            state = getTrafficLightStatus(roi)
-            if state == "GREEN":
-                self.trafficLightStatus.setText(state)
-                self.trafficLightStatus.setStyleSheet('color: green')
-            elif state == "AMBER":
-                self.trafficLightStatus.setText(state)
-                self.trafficLightStatus.setStyleSheet('color: yellow')
-            elif state == "RED":
-                self.trafficLightStatus.setText(state)
-                self.trafficLightStatus.setStyleSheet('color: red')
+            if not ret:
+                frame = cv.imread('standby.jpg', 0)
+                displayImage(frame, True, self.imageLabel)
+            else:
 
-            image_ = cv.resize(roi, (64, 28))
-            displayTraffic(image_, True, self.trafficLight)
+                resized = cv.resize(self.camera2_frame, (1280, 720))    
+                self.camera1_frame = cv.resize(frame, (1280, 720))
+
+                x = 301 * 2
+                y = 182 * 2
+                w = 7 * 2
+                h = 16 * 2
+                roi = self.camera1_frame[y:y + h, x:x + w]
+
+                displayImage(self.camera1_frame, True, self.imageLabel)
+                state = getTrafficLightStatus(roi)
+                if state == "GREEN":
+                    self.trafficLightStatus.setText(state)
+                    self.trafficLightStatus.setStyleSheet('color: green')
+                elif state == "AMBER":
+                    self.trafficLightStatus.setText(state)
+                    self.trafficLightStatus.setStyleSheet('color: yellow')
+                elif state == "RED":
+                    self.trafficLightStatus.setText(state)
+                    self.trafficLightStatus.setStyleSheet('color: red')
+
+                image_ = cv.resize(roi, (64, 28))
+                displayTraffic(image_, True, self.trafficLight)
 
         @QtCore.pyqtSlot()
         def updateTrafficFrame(self):
@@ -268,14 +280,12 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                             rois.append(roi)
                             
                     
-                    for x in range(len(rois)):
-                        cv.imshow('roi', rois[x])
-                        cv.waitKey(0)                           
+                    # for x in range(len(rois)):
+                    #     cv.imshow('roi', rois[x])
+                    #     cv.waitKey(0)                           
                             
                     objects = ct.update(rects)
                                       
-                    
-
                     for (objectID, centroid) in objects.items():
                         # object on the output frame
                         text = "ID {}".format(objectID)
@@ -353,10 +363,10 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                     
                     # dst2 = bg + dst
                     
-                    cv.imshow('dst2', dst)
+                    # cv.imshow('dst2', dst)
                     # cv.waitKey(0)
                     displayImage(img, True, self.imageLabel)
-                    cv.imshow('img', img)
+                    # cv.imshow('img', img)
                 else:
                     displayImage(self.camera1_frame, True, self.imageLabel)
 
