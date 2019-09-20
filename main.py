@@ -19,8 +19,17 @@ import time
 from network import Net
 import web.app as web
 import threading, time
+from plate_number import run 
 # Initialzie the object tracker
 
+
+# # Read the plate number localization graph
+# f =  tf.gfile.FastGFile('ml/plate_number_inference_graph.pb', 'rb') 
+# pn_graph_def = tf.GraphDef()
+# pn_graph_def.ParseFromString(f.read())
+
+    
+    
 
 # Read the graph.
 with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
@@ -31,6 +40,8 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
 
     sess = tf.Session()
     sess.graph.as_default()
+    # sess.pn_graph.as_default()
+    # tf.import_graph_def(pn_graph_def, name='')
     tf.import_graph_def(graph_def, name='')
 
     ct = CentroidTracker()
@@ -78,8 +89,10 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
             self.configButton.clicked.connect(self.showConfig)
             self.camera1_frame = None
             self.camera2_frame = None
+            
+            self.contours = np.array([[362, 20], [800, 20], [1280, 300], [1280, 720], [470, 720]], np.int32)
+            self.yellow_box = np.array([[365, 86], [601, 86], [900, 210], [394, 210]], np.int32)
 
-            self.contours = np.array([[362, 85], [800, 85], [1280, 300], [1280, 720], [470, 720]])
 
         def initializeTimers(self):
             # This is responseible for the frame timing
@@ -105,7 +118,6 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
         def initializeWebServer(self):
             print('starting server')
             web.runServerOnThread()
-                        
 
         def initUI(self):
             self.imageLabel.setScaledContents(True)
@@ -172,7 +184,7 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                 self.camera1_frame = cv.resize(frame, (1280, 720))
 
                 x = 301 * 2
-                y = 182 * 2
+                y = 174 * 2
                 w = 7 * 2
                 h = 16 * 2
                 roi = self.camera1_frame[y:y + h, x:x + w]
@@ -217,7 +229,7 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                     rows = img.shape[0]
                     cols = img.shape[1]
                     
-                          # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
+                    # cv.fillPoly(img, pts=[self.contours], color=(255, 255, 255, 125))
                     # alpha = 0.4
                     # img = cv.addWeighted(overlay, alpha, img, 1 - alpha, 0)
                     # cv.imshow('img', img)
@@ -250,6 +262,12 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                                     sess.graph.get_tensor_by_name('detection_classes:0')],
                                    feed_dict={'image_tensor:0': inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
 
+                    # plate_number = sess.run([sess.pn_graph.get_tensor_by_name('num_detections:0'),
+                    #                 sess.graph.get_tensor_by_name('detection_scores:0'),
+                    #                 sess.graph.get_tensor_by_name('detection_boxes:0'),
+                    #                 sess.graph.get_tensor_by_name('detection_classes:0')],
+                    #                 feed_dict={'image_tensor:0': inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
+
                     # Visualize detected bounding boxes.
                     num_detections = int(out[0][0])
                     rois = []
@@ -261,25 +279,28 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                         score = float(out[1][0][i])
 
                         bbox = [float(v) for v in out[2][0][i]]
-                        if score > 0.5:
+                        if score > 0.2:
                             x = bbox[1] * cols
                             y = bbox[0] * rows
                             right = bbox[3] * cols
                             bottom = bbox[2] * rows
-                            rect = np.array([x, y, right, bottom])
-                            rects.append(rect.astype("int"))
+  
                             new_x = int(x * 1.5)
                             new_y = int(y * 1.5)
                             new_right = int(right * 1.5)
                             new_bottom = int(bottom * 1.5)
-                            cv.rectangle(img, (int(x), int(y)), (int(right), int(bottom)),
-                                         (0, 255, 0), 2)
-                            
-                            
-                            roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
-                            rois.append(roi)
-                            
-                    
+                            # Set width threshold
+                            if (int(right) - int(x) <= 450):
+                                cv.rectangle(img, (int(x), int(y)), (int(right), int(bottom)),
+                                                (0, 255, 0), 2)
+                                
+                                
+                                roi = self.camera2_frame[new_y:new_y + (new_bottom - new_y), new_x:new_x + (new_right - new_x)]
+                                rois.append(roi)
+                                rect = np.array([x, y, right, bottom])
+                                rects.append(rect.astype("int"))
+                               
+                    # Run the plate number detection in the rois of the frame
                     # for x in range(len(rois)):
                     #     cv.imshow('roi', rois[x])
                     #     cv.waitKey(0)                           
@@ -294,7 +315,7 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                         cv.circle(img, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
                         # check if the car is already counted if not append to array
                         # print(centroid[1])
-                        if centroid[1] >= 100:
+                        if centroid[1] >= 200:
                             if len(self.objectsToCount) > 0:
                                 for x in range(len(self.objectsToCount)):
                                     # print('[x]: ' + str(x))
@@ -312,13 +333,13 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                                             if current_time >= self.timeTracker[index]['time_exp']:
                                                 # print(current_time.time() + ' vs ' + self.timeTracker[index]['time_exp'].time(), end=' ')
                                                 self.objectsToCount.append(dict_)
-                                                self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                                self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,1)})
                                                 # delete na yung tracker here?
                                                 self.timeTracker.pop(index)
                                         else:
                                             # Dont check the time just add new one
                                             self.objectsToCount.append(dict_)
-                                            self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                            self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,1)})
 
                                     else:
                                         index = next((index for (index, d) in enumerate(self.objectsToCount) if d["id"] == objectID), None)
@@ -327,36 +348,51 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                             else:
                                 dict_ = {'coords': centroid, 'is_counted': False, 'id': objectID}
                                 self.objectsToCount.append(dict_)
-                                self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,5)})
+                                self.timeTracker.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,1)})
 
-                            cv.rectangle(img, (centroid[0] - 125, centroid[1] - 125), (centroid[0] + 125, centroid[1] + 125),
-                                         (255, 255, 0), 1)
+                            # cv.rectangle(img, (centroid[0] - 125, centroid[1] - 125), (centroid[0] + 125, centroid[1] + 125),
+                            #              (255, 255, 0), 1)
+
+                    # cv.imshow('img', img)
 
                     if len(self.objectsToCount) > 0:
                         for i in range(len(self.objectsToCount)):
                             if self.objectsToCount[i]['is_counted'] == False:
                                 (x, y) = self.objectsToCount[i]['coords']
                                 # print('y['+str(i)+']: ' + str(y))
-                                if y < 200:
+                                if y < 300:
                                     self.numOfCarsDetected += 1
                                     self.objectsToCount[i]['is_counted'] = True
-                                    
-                                    print(self.objectsToCount[i]['coords'])
-                                    
+
+                                    (x, y, right, bottom) = rects[0]
+                                    x = int(x * 1.5)
+                                    y = int(y * 1.5)
+                                    right = int(right * 1.5)
+                                    bottom = int(bottom * 1.5)
+                                    h = bottom - y
+                                    w = right - x
+                                    roi = self.camera2_frame[y:bottom, x:right]
+                                    # print(x, y, bottom, right)
+                                    # print(roi)
+                                    # cv.imshow('roi', roi)
+                                    # cv.waitKey(0)
+                                    ret = run(roi)
+                                    # cv.imshow('roi2', roi)
+                                    # cv.waitKey(0)
+                                    # cv.imshow('ret', ret)
+                                    # cv.waitKey(0)
+                                    # print(self.objectsToCount[i]['coords'])
                                     index = next((index for (index, d) in enumerate(self.timeTracker) if d["id"] == self.objectsToCount[i]['id']), None)
-                                    
+
                                     del self.timeTracker[index]
                                     
                                     self.sendUpdates()
 
-                    img = cv.line(img, (372, 100), (861, 100), (255, 0, 255), 1)
-                    img = cv.line(img, (372, 200), (861, 200), (255, 255, 0), 1)
+                    img = cv.line(img, (372, 200), (861, 200), (255, 0, 255), 1)
+                    img = cv.line(img, (372, 300), (861, 300), (255, 255, 0), 1)
 
                     self.carsDetected.setText(str(self.numOfCarsDetected))
 
-                    
-                    
-                    
                     # # add white background
                     # bg = np.ones_like(img_copy, np.uint8) * 255
                     # cv.bitwise_not(bg, bg, mask=mask)
@@ -364,9 +400,9 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                     # dst2 = bg + dst
                     
                     # cv.imshow('dst2', dst)
-                    # cv.waitKey(0)
+                    cv.polylines(img, [self.yellow_box], True, (255, 125, 125))
                     displayImage(img, True, self.imageLabel)
-                    # cv.imshow('img', img)
+                    # cv.waitKey(0)
                 else:
                     displayImage(self.camera1_frame, True, self.imageLabel)
 
@@ -387,11 +423,69 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
         def showConfig(self):
             print('Show config')
             self.config.show()
+            
+        @QtCore.pyqtSlot()
+        def detectPlateNumber(self, frame):
+            frame_process = frame.copy()
+            # Read the graph.
+            with tf.gfile.FastGFile('ml/plate_number_inference_graph.pb', 'rb') as f:
+                graph_def1 = tf.GraphDef()
+                graph_def1.ParseFromString(f.read())
+                
+                application = QtWidgets.QApplication(sys.argv)
 
+                with tf.Session() as sess:
+                    sess = tf.Session()
+                    sess.graph.as_default()
+                    
+                    rows = frame.shape[0]
+                    cols = frame.shape[1]
+                        
+                    # sess.pn_graph.as_default()
+                    # tf.import_graph_def(pn_graph_def, name='')
+                    tf.import_graph_def(graph_def1, name='')
+                
+                    inp = cv.resize(frame_process, (300, 300))
+                    inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
+                    # Run the model
+                    plate_number = sess.run([sess.graph.get_tensor_by_name('num_detections:0'),
+                                    sess.graph.get_tensor_by_name('detection_scores:0'),
+                                    sess.graph.get_tensor_by_name('detection_boxes:0'),
+                                    sess.graph.get_tensor_by_name('detection_classes:0')],
+                                    feed_dict={'image_tensor:0': inp.reshape(1, inp.shape[0], inp.shape[1], 3)})
+
+                    # Visualize detected bounding boxes.
+                    num_detections = int(plate_number[0][0])
+                    rois = []
+                    rects = []
+                    
+                    # Loop over the detections
+                    for i in range(num_detections):
+                        classId = int(plate_number[3][0][i])
+                        score = float(plate_number[1][0][i])
+
+                        bbox = [float(v) for v in plate_number[2][0][i]]
+                        
+                        if score > 0.2:
+                            x = bbox[1] * cols
+                            y = bbox[0] * rows
+                            right = bbox[3] * cols
+                            bottom = bbox[2] * rows
+
+                            new_x = int(x * 1.5)
+                            new_y = int(y * 1.5)
+                            new_right = int(right * 1.5)
+                            new_bottom = int(bottom * 1.5)
+                            # Set width threshold
+                            cv.rectangle(frame_process, (int(x), int(y)), (int(right), int(bottom)),
+                                            (0, 255, 0), 2)
+                        
+                    sess.close()
+                    return frame_process
+                            
+                            
 
 # Static Methods
-
-
 def getTrafficLightStatus(frame):
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     red = gray[6][6]
@@ -433,7 +527,7 @@ def displayTraffic(img, window=True, label=None):
             qformat = QtGui.QImage.Format_RGBA8888
         else:
             qformat = QtGui.QImage.Format_RGB888
-    outImage = QtGui.QImage(img, img.shape[1], img.shape[0], img.strides[0], qformat)
+        outImage = QtGui.QImage(img, img.shape[1], img.shape[0], img.strides[0], qformat)
 
     outImage = outImage.rgbSwapped()
     if window:
@@ -445,10 +539,10 @@ if __name__ == '__main__':
 
     window = Main()
     window.setWindowTitle(Details.name)
+    window.setFixedSize(1366, 768)
     window.show()
     window.sess = sess
     window.graph_def = graph_def
-
     # window.showFullScreen()
     # window.show()
     sys.exit(application.exec_())
