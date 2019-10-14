@@ -5,12 +5,12 @@ from PIL import Image
 from utils import visualization_utils as vis_util
 from utils import label_map_util
 
-category_index = label_map_util.create_category_index_from_labelmap('/home/lr/plate.pbtxt', use_display_name=True)
+category_index = label_map_util.create_category_index_from_labelmap('ml/plate.pbtxt', use_display_name=True)
 
 detection_graph = tf.Graph()
 with detection_graph.as_default():
   od_graph_def = tf.GraphDef()
-  with tf.gfile.GFile('/home/lr/Downloads/test/platenumber_inference/plate_number_inference_graph.pb', 'rb') as fid:
+  with tf.gfile.GFile('ml/plate_number_inference_graph.pb', 'rb') as fid:
     serialized_graph = fid.read()
     od_graph_def.ParseFromString(serialized_graph)
     tf.import_graph_def(od_graph_def, name='')
