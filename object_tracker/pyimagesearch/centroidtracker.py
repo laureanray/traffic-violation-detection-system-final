@@ -3,6 +3,7 @@ from scipy.spatial import distance as dist
 from collections import OrderedDict
 import numpy as np
 
+
 class CentroidTracker():
 	def __init__(self, maxDisappeared=2):
 		# initialize the next unique object ID along with two ordered
@@ -17,7 +18,13 @@ class CentroidTracker():
 		# object is allowed to be marked as "disappeared" until we
 		# need to deregister the object from tracking
 		self.maxDisappeared = maxDisappeared
-
+  
+	def updateObject(self, key, value):
+		# when registering an object we use the next available object
+		# ID to store the centroid
+		self.objects[key] = value
+		return self.objects[key]
+  
 	def register(self, centroid):
 		# when registering an object we use the next available object
 		# ID to store the centroid
@@ -30,7 +37,7 @@ class CentroidTracker():
 		# both of our respective dictionaries
 		del self.objects[objectID]
 		del self.disappeared[objectID]
-
+  
 	def update(self, rects):
 		# check to see if the list of input bounding box rectangles
 		# is empty
@@ -151,3 +158,5 @@ class CentroidTracker():
 
 		# return the set of trackable objects
 		return self.objects
+
+

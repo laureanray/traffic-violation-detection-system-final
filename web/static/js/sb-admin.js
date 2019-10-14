@@ -39,7 +39,6 @@
 
 
   $(document).ready(function(){
-    $("#dataTable").DataTable();
 
     var socket = io('http://' + document.domain + ':' + location.port);
     // socket.on('connect', function() {

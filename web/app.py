@@ -7,11 +7,13 @@ from bson import Binary, Code
 from bson.json_util import dumps
 import threading, time
 from multiprocessing import Process
+from network import Net
 
 client = pymongo.MongoClient("mongodb://localhost:27017")
 db = client["tvds-dev"]
 violations_collection = db["violations"]
 global_collection = db['global']
+user_collection = db['user']
 
 app = Flask(__name__)
 
@@ -23,17 +25,6 @@ socketio = SocketIO(app)
 def index():
     return render_template('template.html', page='index')
 
-
-# @app.route('/add_violation', methods=['POST'])
-# def add_violation():
-#     if request.is_json:
-#         data = request.get_json()
-#         print(data['test'])
-#     return 'JSON ok'
-
-# a = global_collection.find_one()
-
-# print(a)
 @app.route('/get_global', methods=['GET'])
 def get_global():
     a = global_collection.find_one()
@@ -41,13 +32,15 @@ def get_global():
     print(a)
     return jsonify(a)
 
-@app.route('/update_car_count', methods=['POST'])
+@app.route('/routine_update', methods=['POST'])
 def update_num_car():
     if request.is_json:
         data = request.get_json()
         cars = data['cars_detected']
+        violations = data['violations_detected']
         query = {'_Q': 'global'}
-        values = { '$set': { 'cars_detected': cars}}
+        values = { '$set': { 'cars_detected': cars, 'violations_detected': violations}}
+        
         global_collection.update_one(query, values)
         
         
@@ -55,22 +48,17 @@ def update_num_car():
     # json_res = json.dumps(res)
     return jsonify(res)
 
-@app.route('/add_violation', methods=['POST'])
-def add_violation():
-    if request.is_json:
-        data = request.get_json()
-        violation_type = data['violation_type']
-        plate_number = data['plate_number']
-        plate_number_img_url = data['plate_number_img_url']
-        vehicle_img_url = data['vehicle_img_url']
-        vehicle_type = data['vehicle_type']
-        
+# @app.route('/add_violation', methods=['POST'])
+def add_violation(data):
+    # pritn('add violation called')
+    # if request.is_json:
+    with app.app_context():
         data_to_insert = {
-            'violation_type': violation_type,
-            'vehicle_type': vehicle_type,
-            'plate_number': plate_number,
-            'plate_number_img_url': plate_number_img_url,
-            'vehicle_img_url': vehicle_img_url            
+            'violation_type': data['violation_type'],
+            'vehicle_type': data['vehicle_type'],
+            'plate_number': data['plate_number'],
+            'plate_number_img_url': data['plate_number_img_url'],
+            'vehicle_img_url': data['vehicle_img_url']            
         }
         
         violations_collection.insert_one(data_to_insert)
@@ -78,6 +66,17 @@ def add_violation():
         return jsonify({'res': 'ok'})
 
 
+@app.route('/get_violations', methods=['GET'])
+def get_violations():
+    res = []
+    # data = violations_collection.find({})
+    for x in violations_collection.find():
+        del x['_id']
+        res.append(x)
+        
+    print(res)
+    
+    return json.dumps(res)
 
 def initialize_databse():
     
@@ -87,10 +86,17 @@ def initialize_databse():
         'violation_detected': 0
     }
     
+    adminData = {
+        'username': 'admin',
+        'password': 'P@$$w0rd'
+    }
     # print(current_col.count())
     
     if global_collection.count() == 0:
         res = global_collection.insert_one(data)
+        
+    if user_collection.count() == 0:
+        res2 = user_collection.insert_one(adminData)
     
     print('Database Initialized')
 
@@ -111,7 +117,7 @@ initialize_databse()
 
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, port=3001)
 
 
 

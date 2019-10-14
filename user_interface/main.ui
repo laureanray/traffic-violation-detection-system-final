@@ -16,21 +16,21 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>700</y>
+     <x>1200</x>
+     <y>340</y>
      <width>151</width>
      <height>18</height>
     </rect>
    </property>
    <property name="text">
-    <string>Trafic Light Status</string>
+    <string>Trafic Light </string>
    </property>
   </widget>
   <widget class="QPushButton" name="configButton">
    <property name="geometry">
     <rect>
      <x>1200</x>
-     <y>500</y>
+     <y>640</y>
      <width>151</width>
      <height>31</height>
     </rect>
@@ -43,24 +43,11 @@ background-color: gray;</string>
     <string>Configuration</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_2">
-   <property name="geometry">
-    <rect>
-     <x>230</x>
-     <y>700</y>
-     <width>221</width>
-     <height>18</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Last Detected Plate Number</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="changeCameraButton">
    <property name="geometry">
     <rect>
      <x>1200</x>
-     <y>630</y>
+     <y>680</y>
      <width>151</width>
      <height>31</height>
     </rect>
@@ -69,53 +56,18 @@ background-color: gray;</string>
     <string>Switch Camera</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_3">
-   <property name="geometry">
-    <rect>
-     <x>1200</x>
-     <y>590</y>
-     <width>151</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color: white;
-background-color: green;</string>
-   </property>
-   <property name="text">
-    <string>Start Recording</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>230</x>
-     <y>720</y>
-     <width>161</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>25</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>UVW-123</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="trafficLightStatus">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>720</y>
+     <x>1200</x>
+     <y>360</y>
      <width>141</width>
      <height>31</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>25</pointsize>
+     <pointsize>22</pointsize>
     </font>
    </property>
    <property name="text">
@@ -125,8 +77,8 @@ background-color: green;</string>
   <widget class="QLabel" name="label_5">
    <property name="geometry">
     <rect>
-     <x>890</x>
-     <y>700</y>
+     <x>1200</x>
+     <y>430</y>
      <width>181</width>
      <height>18</height>
     </rect>
@@ -138,8 +90,8 @@ background-color: green;</string>
   <widget class="QLabel" name="carsDetected">
    <property name="geometry">
     <rect>
-     <x>890</x>
-     <y>720</y>
+     <x>1200</x>
+     <y>450</y>
      <width>161</width>
      <height>31</height>
     </rect>
@@ -150,14 +102,14 @@ background-color: green;</string>
     </font>
    </property>
    <property name="text">
-    <string>421</string>
+    <string>0</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_7">
    <property name="geometry">
     <rect>
-     <x>570</x>
-     <y>700</y>
+     <x>1200</x>
+     <y>510</y>
      <width>181</width>
      <height>18</height>
     </rect>
@@ -166,11 +118,11 @@ background-color: green;</string>
     <string>Violations Detected</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_8">
+  <widget class="QLabel" name="violationsDetected">
    <property name="geometry">
     <rect>
-     <x>570</x>
-     <y>720</y>
+     <x>1200</x>
+     <y>530</y>
      <width>161</width>
      <height>31</height>
     </rect>
@@ -181,7 +133,7 @@ background-color: green;</string>
     </font>
    </property>
    <property name="text">
-    <string>15</string>
+    <string>0</string>
    </property>
   </widget>
   <widget class="QPushButton" name="stopButton">
@@ -207,10 +159,10 @@ color: white</string>
   <widget class="QLabel" name="imageLabel">
    <property name="geometry">
     <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>1171</width>
-     <height>661</height>
+     <x>-10</x>
+     <y>0</y>
+     <width>1191</width>
+     <height>771</height>
     </rect>
    </property>
    <property name="text">
@@ -220,8 +172,8 @@ color: white</string>
   <widget class="QLabel" name="trafficLight">
    <property name="geometry">
     <rect>
-     <x>170</x>
-     <y>690</y>
+     <x>1330</x>
+     <y>330</y>
      <width>28</width>
      <height>64</height>
     </rect>
@@ -230,50 +182,11 @@ color: white</string>
     <string>TextLabel</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="changeCameraButton_2">
-   <property name="geometry">
-    <rect>
-     <x>1200</x>
-     <y>460</y>
-     <width>151</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>View Logs</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_9">
-   <property name="geometry">
-    <rect>
-     <x>1200</x>
-     <y>690</y>
-     <width>181</width>
-     <height>18</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>System Controls</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_10">
-   <property name="geometry">
-    <rect>
-     <x>1200</x>
-     <y>560</y>
-     <width>181</width>
-     <height>18</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Recording</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_11">
    <property name="geometry">
     <rect>
      <x>1200</x>
-     <y>430</y>
+     <y>610</y>
      <width>181</width>
      <height>18</height>
     </rect>
