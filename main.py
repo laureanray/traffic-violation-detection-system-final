@@ -97,12 +97,10 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
             self.camera1_frame = None
             self.camera2_frame = None
             
-            self.contours = np.array([[362, 20], [800, 20], [1280, 300], [1280, 720], [470, 720]], np.int32)
-            self.yellow_box = np.array([[365, 86], [601, 86], [900, 210], [394, 210]], np.int32)
+            self.contours = np.array([[200, 20], [700, 20], [1280, 300], [1280, 720], [300, 720]], np.int32)
+            self.yellow_box = np.array([[230, 86], [550, 86], [850, 210], [280, 210]], np.int32)
             self.plate_number_process = Process(target = self.plateDetectionAndOcr)
             self.trafficLightState = ""
-            
-
 
         def plateDetectionAndOcr(self, image):
             plate = run(image)
@@ -112,12 +110,11 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
 
         def initializeTimers(self):
             # This is responseible for the frame timing
-            self.frameTimer = QtCore.QTimer(self, interval=25)
+            self.frameTimer = QtCore.QTimer(self, interval=1)
             # This updates the clock
             self.clockTimer = QtCore.QTimer(self, interval=1000)
             # This sets the http requests every 5 seconds
             # self.networkTimer = QtCore.QTimer(self, interval=5000)
-            
             # Connect the function dependent on the timers
             self.frameTimer.timeout.connect(self.updateTrafficLightFrame)
             self.frameTimer.timeout.connect(self.updateTrafficFrame)
@@ -199,8 +196,8 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                 resized = cv.resize(self.camera2_frame, (1280, 720))    
                 self.camera1_frame = cv.resize(frame, (1280, 720))
 
-                x = 301 * 2
-                y = 174 * 2
+                x = 297 * 2
+                y = 176 * 2
                 w = 7 * 2
                 h = 16 * 2
                 roi = self.camera1_frame[y:y + h, x:x + w]
@@ -267,6 +264,8 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                     inp = cv.resize(dst, (300, 300))
                     inp = inp[:, :, [2, 1, 0]]  # BGR2RGB
                     overlay = img.copy()
+                    
+                
 
                     if self.W is None or self.H is None:
                         (self.H, self.W) = img.shape[:2]
@@ -426,6 +425,8 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                                     self.timeTracker2.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,1)})
                                 # print('ok')
 
+                        print(objectID, centroid)
+
                     if len(self.objectsToCount) > 0:
                         for i in range(len(self.objectsToDetectViolation)):
                             if self.objectsToDetectViolation[i]['violated'] == False:
@@ -485,6 +486,7 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
 
                     cv.polylines(img, [self.yellow_box], True, (255, 125, 125))
                     displayImage(img, True, self.imageLabel)
+                    # cv.imshow('dst', dst)
                     # cv.imshow('img', img)
                     # cv.waitKey(1)
                 else:

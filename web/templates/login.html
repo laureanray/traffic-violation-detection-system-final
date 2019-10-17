@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>Traffic Violation Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome-free/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/datatables/dataTables.bootstrap4.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sb-admin.css') }}">
+
+    <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/jquery-3.4.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/jquery-easing/jquery.easing.min.js') }}"></script>
+
+    <!-- Page level plugin JavaScript-->
+    <script src="{{ url_for('static', filename='vendor/chart.js/Chart.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/jquery.dataTables.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/dataTables.bootstrap4.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sb-admin.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/site.js') }}"></script>
+
+    <link rel="shortcut icon" href="{{ url_for('static', filename='icon.png') }}" type="image/png">
+</head>
+
+<body class="bg-dark">
+
+  <div class="container mt-4">
+    <div class="card card-login mx-auto mt-5">
+      <div class="card-header">
+      <h4 class="display-6 pt-3"> 
+        <img src="{{ url_for('static', filename='icon.png') }}" class="img-fluid" style="height: 40px;" alt="">
+        Traffic Violation Detection System </h4>
+        
+      <p class="pt-3">
+          Administrator Login
+      </p>  </div>
+      <div class="card-body">
+        <form id="loginForm">
+          <div class="form-group">
+            <p class="text-danger font-weight-bold" id="error" style="margin-left: 2px; font-size: 14px!important;" hidden> Error Message. </p>
+            <div class="form-label-group">
+              <input type="text" id="inputUserName" name="username" class="form-control" placeholder="Email address" required="required" autofocus="autofocus">
+              <label for="inputUserName">Username</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label-group">
+              <input type="password" id="inputPassword"  name="password" class="form-control" placeholder="Password" required="required">
+              <label for="inputPassword">Password</label>
+            </div>
+          </div>
+          <!-- <div class="form-group">
+            <div class="checkbox">
+              <label>
+                <input type="checkbox" value="remember-me">
+                Remember Password
+              </label>
+            </div>
+          </div> -->
+          <button id="submit" class="btn btn-lg btn-primary btn-block"> Login </button>
+        </form>
+        <!-- <div class="text-center">
+          <a class="d-block small mt-3" href="register.html">Register an Account</a>
+          <a class="d-block small" href="forgot-password.html">Forgot Password?</a>
+        </div> -->
+      </div>
+    </div>
+  </div>
+
+
+
+</body>
+<script>
+  button = undefined;
+  username = undefined;
+  
+
+  function disableControls(){
+    button.attr('disabled', 'disabled');
+    username.attr('disabled', 'disabled');
+    password.attr('disabled', 'disabled');
+  }
+
+  function enableControls(){
+    button.removeAttr('disabled');
+    username.removeAttr('disabled');
+    password.removeAttr('disabled');
+  }
+  
+  function loginRequest(data){
+    console.log(data)
+    $.ajax({
+      type: 'POST',
+      url: './login',
+      contentType: 'application/json',
+      dataType: 'json',
+      data: JSON.stringify(data),
+      success: function(response){
+        console.log(response);
+        if(response.status === "Authenticated"){
+          window.location = "/";
+        }else{
+          enableControls();
+
+          $("#error").removeAttr('hidden');
+          $("#error").html(response.status);
+          
+        }
+      },
+      error: function(error){
+        console.log(error);
+       
+      }
+    });
+  }
+
+  $(document).ready(function(){
+    console.log('ready');
+
+    button = $("#submit");
+    username = $("#inputUserName");
+    password = $("#inputPassword");
+
+    button.attr('disabled', 'disabled')
+
+    username.keyup(inputChanged)
+    password.keyup(inputChanged)
+
+    $("#submit").click(function(event){
+      event.preventDefault();
+      button.val('Logging In');
+      disableControls();
+      
+      var data = {
+        username: username.val(),
+        password: password.val()
+      };
+
+      console.log(data);
+      loginRequest(data);
+    });
+
+
+    function inputChanged(key){
+      console.log('Input changed');
+
+      $("#error").attr('hidden', 'hidden');
+
+      if(username.val().length > 0 && password.val().length > 0){
+        button.removeAttr('disabled');
+        if(key.code === "Enter"){
+          $("#submit").click();
+        }
+
+      }else{
+        button.attr('disabled', 'disabled');
+      }
+    }
+  });
+</script>
+</html>

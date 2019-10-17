@@ -6,8 +6,8 @@ import threading, time
 class Net:
   def __init__(self):
     self.sio = socketio.Client()
-    self.sio.connect('http://localhost:5000')
-    self.connection = http.client.HTTPConnection('localhost:5000')
+    self.sio.connect('http://localhost:3000')
+    self.connection = http.client.HTTPConnection('localhost:3000')
     self.headers = {'Content-type': 'application/json'}
     
   def sendRoutineUpdate(self, car_count, violation_count):

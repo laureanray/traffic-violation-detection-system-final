@@ -1,1 +1,1 @@
-sudo service mongod start
+echo 'P@$$w0rd' |  sudo -S service mongod start

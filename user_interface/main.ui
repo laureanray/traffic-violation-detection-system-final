@@ -84,7 +84,7 @@ background-color: gray;</string>
     </rect>
    </property>
    <property name="text">
-    <string>Cars Detected Today</string>
+    <string>Vehicle Detected</string>
    </property>
   </widget>
   <widget class="QLabel" name="carsDetected">
@@ -179,7 +179,7 @@ color: white</string>
     </rect>
    </property>
    <property name="text">
-    <string>TextLabel</string>
+    <string/>
    </property>
   </widget>
   <widget class="QLabel" name="label_11">
@@ -201,7 +201,7 @@ color: white</string>
      <x>1200</x>
      <y>20</y>
      <width>181</width>
-     <height>21</height>
+     <height>41</height>
     </rect>
    </property>
    <property name="font">
@@ -210,14 +210,14 @@ color: white</string>
     </font>
    </property>
    <property name="text">
-    <string>MONDAY</string>
+    <string>Thursday</string>
    </property>
   </widget>
   <widget class="QLabel" name="time">
    <property name="geometry">
     <rect>
      <x>1200</x>
-     <y>40</y>
+     <y>60</y>
      <width>181</width>
      <height>41</height>
     </rect>
@@ -237,7 +237,7 @@ color: white</string>
    <property name="geometry">
     <rect>
      <x>1200</x>
-     <y>70</y>
+     <y>90</y>
      <width>181</width>
      <height>41</height>
     </rect>

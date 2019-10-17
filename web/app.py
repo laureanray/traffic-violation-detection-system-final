@@ -1,13 +1,17 @@
 from flask import Flask, render_template, send_from_directory, request
 import pymongo
 import json 
-from flask import jsonify
+from flask import jsonify, session
 from flask_socketio import SocketIO, send, emit
 from bson import Binary, Code
 from bson.json_util import dumps
 import threading, time
 from multiprocessing import Process
-from network import Net
+# from network import Net
+# from flask.ext.session import Session
+from flask_session import Session
+
+SESSION_TYPE = 'mongodb'
 
 client = pymongo.MongoClient("mongodb://localhost:27017")
 db = client["tvds-dev"]
@@ -16,6 +20,9 @@ global_collection = db['global']
 user_collection = db['user']
 
 app = Flask(__name__)
+app.config.from_object(__name__)
+
+Session(app)
 
 socketio = SocketIO(app)
 
@@ -23,7 +30,11 @@ socketio = SocketIO(app)
 
 @app.route('/')
 def index():
-    return render_template('template.html', page='index')
+    if(session.get('user_id')):
+        return render_template('template.html', page='index')
+    else:
+        return render_template('login.html', page='index')
+
 
 @app.route('/get_global', methods=['GET'])
 def get_global():
@@ -66,6 +77,37 @@ def add_violation(data):
         return jsonify({'res': 'ok'})
 
 
+@app.route('/login', methods=['POST'])
+def login():
+    status = ''    
+    if(request.is_json):
+        data = request.get_json()
+        user =  user_collection.find_one({'username': data['username']})
+        
+        print(user)
+        if user is not None:
+            if data['password'] == user['password']:
+                status = 'Authenticated'
+                session['user_id'] = user['_id']
+            else:
+                status = 'Wrong Password'
+        else:
+            status = 'Invalid Credentials'
+        
+    res = {'status': status}
+    return jsonify(res)
+
+
+@app.route('/logout', methods=['GET'])
+def logout():
+    if(session.get('user_id')):
+        session.clear()
+    
+    return render_template('login.html', page='index')
+    
+
+
+
 @app.route('/get_violations', methods=['GET'])
 def get_violations():
     res = []
@@ -86,6 +128,7 @@ def initialize_databse():
         'violation_detected': 0
     }
     
+
     adminData = {
         'username': 'admin',
         'password': 'P@$$w0rd'
@@ -105,7 +148,7 @@ def initialize_databse():
 def handle_message(message):
     emit('update', {'message': message}, broadcast=True)    
     # print('received message: ' + message['foo'])
-    
+
     
 # @socketio.on('connected')
 # def handle_connect():
@@ -116,13 +159,10 @@ def handle_message(message):
 initialize_databse()
 
 
-if __name__ == '__main__':
-    socketio.run(app, port=3001)
-
 
 
 def runServer():
-    socketio.run(app)
+    socketio.run(app, port=3000, host='0.0.0.0', debug=False)
 
 # thread = threading.Thread(target = runServer)
 process = Process(target = runServer)
@@ -133,3 +173,14 @@ def runServerOnThread():
     
 def shutdownServerOnThread():
     process.terminate()
+    
+
+
+
+
+if __name__ == '__main__':
+    socketio.run(app, port=80, host='0.0.0.0', debug=True)
+    # runServerOnThread()
+    # runServerOnThread()
+    
+# runServerOnThread()
