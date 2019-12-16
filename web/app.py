@@ -1,6 +1,6 @@
 from flask import Flask, render_template, send_from_directory, request
 import pymongo
-import json 
+import json     
 from flask import jsonify, session
 from flask_socketio import SocketIO, send, emit
 from bson import Binary, Code
@@ -10,6 +10,7 @@ from multiprocessing import Process
 # from network import Net
 # from flask.ext.session import Session
 from flask_session import Session
+import datetime
 
 SESSION_TYPE = 'mongodb'
 
@@ -63,13 +64,15 @@ def update_num_car():
 def add_violation(data):
     # pritn('add violation called')
     # if request.is_json:
+    
     with app.app_context():
         data_to_insert = {
             'violation_type': data['violation_type'],
             'vehicle_type': data['vehicle_type'],
             'plate_number': data['plate_number'],
             'plate_number_img_url': data['plate_number_img_url'],
-            'vehicle_img_url': data['vehicle_img_url']            
+            'vehicle_img_url': data['vehicle_img_url'],
+            'date': datetime.datetime.utcnow()          
         }
         
         violations_collection.insert_one(data_to_insert)
@@ -114,6 +117,7 @@ def get_violations():
     # data = violations_collection.find({})
     for x in violations_collection.find():
         del x['_id']
+        x['date'] = str(x['date'])
         res.append(x)
         
     print(res)

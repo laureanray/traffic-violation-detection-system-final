@@ -213,31 +213,11 @@ color: white</string>
     <string>Thursday</string>
    </property>
   </widget>
-  <widget class="QLabel" name="time">
-   <property name="geometry">
-    <rect>
-     <x>1200</x>
-     <y>60</y>
-     <width>181</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>22</pointsize>
-     <weight>75</weight>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>7:02 PM</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="date">
    <property name="geometry">
     <rect>
      <x>1200</x>
-     <y>90</y>
+     <y>60</y>
      <width>181</width>
      <height>41</height>
     </rect>

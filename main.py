@@ -104,15 +104,15 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
 
         def plateDetectionAndOcr(self, image):
             plate = run(image)
-            cv.imshow('plate', plate)
-            cv.waitKey(1000)
+            # cv.imshow('plate', plate)
+            # cv.waitKey(1000)
             return plate
 
         def initializeTimers(self):
             # This is responseible for the frame timing
             self.frameTimer = QtCore.QTimer(self, interval=1)
             # This updates the clock
-            self.clockTimer = QtCore.QTimer(self, interval=1000)
+            self.clockTimer = QtCore.QTimer(self, interval=60000)
             # This sets the http requests every 5 seconds
             # self.networkTimer = QtCore.QTimer(self, interval=5000)
             # Connect the function dependent on the timers
@@ -167,7 +167,7 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
             now = datetime.datetime.now()
             self.day.setText(now.strftime("%A"))
             self.date.setText(now.strftime("%B %d, %Y"))
-            self.time.setText(time.strftime("%H:%M:%S", time.localtime()))
+            # self.time.setText(time.strftime("%H:%M:%S", time.localtime()))
 
         @QtCore.pyqtSlot()
         def start_camera(self):
@@ -196,8 +196,8 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                 resized = cv.resize(self.camera2_frame, (1280, 720))    
                 self.camera1_frame = cv.resize(frame, (1280, 720))
 
-                x = 297 * 2
-                y = 176 * 2
+                x = 300 * 2
+                y = 177 * 2
                 w = 7 * 2
                 h = 16 * 2
                 roi = self.camera1_frame[y:y + h, x:x + w]
@@ -377,10 +377,8 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                                         # print(self.objectsToCount[x]['id'])
                                         # if objectID != self.objectsToCount[x]['id']:
                                         if not any(d['id'] == objectID for d in self.objectsToDetectViolation):
-                                            # print(str(objectID) + ' not equal to ' + str(self.objectsToDetectViolation[x]['id']))
-                                            
+      
                                             # index = next((index for (index, d) in enumerate(self.objectsToDetectViolation) if d["coords"][0] == ()), None)
-
                                             bbox = []
 
                                             for x, y, endx, endy in rects:
@@ -425,7 +423,7 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                                     self.timeTracker2.append({'id': objectID, 'time_exp': datetime.datetime.now() + datetime.timedelta(0,1)})
                                 # print('ok')
 
-                        print(objectID, centroid)
+                        # print(objectID, centroid)
 
                     if len(self.objectsToCount) > 0:
                         for i in range(len(self.objectsToDetectViolation)):
@@ -444,27 +442,32 @@ with tf.gfile.FastGFile('ml/car_inference_graph.pb', 'rb') as f:
                                     x, y, endx, endy = self.objectsToDetectViolation[i]['bbox']
                                     
 
-                                    data = {
-                                        'violation_type': 'BEATING THE RED LIGHT',
-                                        'vehicle_type': 'Car',
-                                        'plate_number': 'plate',
-                                        'plate_number_img_url': '/data/asdas',
-                                        'vehicle_img_url': '/adasda'
-                                    }
-                                    
                                     # Detect platenumber\
                                     car_roi = self.camera2_frame[int(y * 1.5):int(endy * 1.5), int(x * 1.5):int(endx * 1.5)]
                                         
                                     plate_roi = self.plateDetectionAndOcr(car_roi)
 
-                                    add_violation(data)
                                     self.net.sendRoutineUpdate(self.numOfCarsDetected, self.numOfVehiclesViolated)
 
                                     # cv.imshow('roasdasdasd', roi)
                                     time_str = str(time.time())
-                                    cv.imwrite('/home/lr/Desktop/tvds-integrated-final/data/red_light/car' +  time_str + '.jpg', car_roi)
-                                    cv.imwrite('/home/lr/Desktop/tvds-integrated-final/data/red_light/plate_' +   time_str + '.jpg', plate_roi)
-
+                                    plate_url = '/home/lr/Desktop/tvds-integrated-final/data/red_light/plate_' + time_str + '.jpg'
+                                    car_url = '/home/lr/Desktop/tvds-integrated-final/data/red_light/car_' + time_str + '.jpg'
+                                    plate_url2 = 'red_light/plate_' + time_str + '.jpg'
+                                    car_url2 = 'red_light/car_' + time_str + '.jpg'
+                                    cv.imwrite(plate_url, plate_roi)
+                                    cv.imwrite(car_url, car_roi)
+                                    
+                                    data = {
+                                        'violation_type': 'PASSING THE RED LIGHT',
+                                        'vehicle_type': 'Car',
+                                        'plate_number': 'plate',
+                                        'plate_number_img_url': plate_url2,
+                                        'vehicle_img_url': car_url2
+                                    }
+                                    
+                                    add_violation(data)
+                                    
                                    
                     
                     if len(self.objectsToCount) > 0:
@@ -617,7 +620,7 @@ if __name__ == '__main__':
 
     window = Main()
     window.setWindowTitle(Details.name)
-    window.setFixedSize(1366, 768)
+    # window.setFixedSize(1366, 768)
     # window.show()
     window.sess = sess
     window.graph_def = graph_def
